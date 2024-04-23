@@ -1,0 +1,3 @@
+repo_name: "codecov-cli"
+url: https://github.com/codecov/codecov-cli
+cov_folders: ["codecov_cli"]
