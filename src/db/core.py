@@ -26,23 +26,30 @@ class Database:
         except IOError as e:
             print(f"Error saving to DB file: {e}")
 
-    def save_dict(self, key, value):
+    def save_dict(self, dict_key, key, value):
         """
         Adds a key/val pair to existing key
         """
         try:
-            data = self.get(key)
-            if not data:
-                data = {}
+            data = self.get_all()
+            if not data.get(dict_key, None):
+                data[dict_key] = {}
 
-            data[key] = value
-            self.save_upsert(key, data)
+            data[dict_key][key] = value
+            with open(self.filepath, "w") as f:
+                json.dump(data, f, indent=2)
 
         except IOError as e:
             print(f"Error saving to DB file: {e}")
 
     def get(self, key, default=None):
         return self.get_all().get(key, default)
+
+    def get_dict(self, dict_key, key):
+        data = self.get_all()
+        if dict_key in data:
+            return data[dict_key].get(key, None)
+        return None
 
     def delete(self, key):
         data = self.get_all()

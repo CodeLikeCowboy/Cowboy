@@ -155,7 +155,9 @@ class RepoTestContextFactory:
                 r_config = self.rc_repo.find(repo_name)
 
             if not r_config:
-                raise Exception(f"Repo config for {repo_name} not found in database")
+                raise Exception(
+                    f"No such repo {repo_name}. Remember repo names are created in the following format <owner>_<repo_name>"
+                )
 
             self.repo_configs[repo_name] = r_config.python_conf
             if (

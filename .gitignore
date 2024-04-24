@@ -56,3 +56,6 @@ env/
 
 # Development database
 *.db
+
+# Ignore test repos
+repos/*

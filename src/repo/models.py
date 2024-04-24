@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, List, Optional
 
 from src.db.core import Database
+from src.exceptions import CowboyConfigError
 
 
 @dataclass
@@ -38,8 +39,16 @@ class PythonConf:
     interp: str
     pythonpath: str
 
-    def get(self, __name: str, default: Any) -> Any:
-        return self.__dict__.get(__name, default)
+    # ghetto AF, we should just be using pydantic for this
+    def __post_init__(self):
+        mandatory_keys = ["cov_folders", "interp"]
+        for k in self.__dict__:
+            if k not in mandatory_keys:
+                continue
+
+            v = getattr(self, k)
+            if not v:
+                raise CowboyConfigError(f"{k} must be set in config")
 
 
 class RepoConfigRepository:
@@ -47,10 +56,12 @@ class RepoConfigRepository:
         self.db = db
 
     def save(self, repo_config: RepoConfig):
-        self.db.save_dict(key="repos", value=repo_config.serialize())
+        self.db.save_dict(
+            dict_key="repos", key=repo_config.repo_name, value=repo_config.serialize()
+        )
 
     def find(self, repo_name: str) -> Optional[RepoConfig]:
-        repo_config = self.db.get(repo_name)
+        repo_config = self.db.get_dict("repos", repo_name)
         if repo_config:
             return self.rcfg_from_dict(repo_config)
 

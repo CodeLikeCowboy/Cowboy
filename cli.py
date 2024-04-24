@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 
 from src.repo.models import RepoConfig, RepoConfigRepository, PythonConf
+from src.repo.repo import RepoTestContext, RepoTestContextFactory
 from src.db.core import Database
 from src.http.base import APIClient
 from src.exceptions import CowboyClientError
@@ -12,8 +13,6 @@ from src.config import SAD_KIRBY
 
 db = Database()
 api = APIClient(db)
-
-# init <repo_name> <config>
 
 
 def owner_name_from_url(url: str):
@@ -65,7 +64,7 @@ def repo_init(repo_name, config):
     python_conf = PythonConf(
         cov_folders=repo_config.get("cov_folders", []),
         test_folder=repo_config.get("test_folder", ""),
-        interp=repo_config.get("interp", ""),
+        interp=repo_config.get("interp"),
         pythonpath=repo_config.get("pythonpath", ""),
     )
 
@@ -83,10 +82,20 @@ def repo_init(repo_name, config):
     if exists:
         click.secho("Overwriting config for existing repo", fg="yellow")
 
-    api.post("/repo/create", repo_config.serialize())
-
+    # res = api.post("/repo/create", repo_config.serialize())
+    # forked_url = res["forked_url"]
+    # repo_config.forked_url = forked_url
     rc_repo.save(repo_config)
-    click.secho("Success.", fg="green")
+
+    click.secho(
+        "Successfully created repo: {}".format(repo_config.repo_name), fg="green"
+    )
+
+
+@cowboy_repo.command("baseline")
+@click.argument("repo_name")
+def repo_baseline(repo_name):
+    repo_ctxt = RepoTestContextFactory(db).create_context(repo_name)
 
 
 def entrypoint():

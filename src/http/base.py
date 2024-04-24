@@ -44,7 +44,9 @@ class APIClient:
         """
         Parses token from response and HTTP exceptions
         """
-        auth_token = res.json().get("token", None)
+        json_res = res.json()
+
+        auth_token = json_res.get("token", None)
         if auth_token:
             self.db.save_upsert("token", auth_token)
 
@@ -54,3 +56,5 @@ class APIClient:
         if res.status_code == 422:
             message = res.json()["detail"][0]["msg"]
             raise HTTPError(json.dumps(res.json(), indent=2))
+
+        return json_res
