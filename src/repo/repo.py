@@ -157,14 +157,14 @@ class RepoTestContextFactory:
             if not r_config:
                 raise Exception(f"Repo config for {repo_name} not found in database")
 
-            self.repo_configs[repo_name] = r_config.py_confg
+            self.repo_configs[repo_name] = r_config.python_conf
             if (
                 not self.source_folders.get(repo_name, None)
                 or not len(self.cloned_folders.get(repo_name, [])) < NUM_CLONES
             ):
                 self.initialize_folders(repo_name)
 
-        settings = settings if settings else r_config.py_confg
+        settings = settings if settings else r_config.python_conf
         repo_path = repo_path if repo_path else self.source_folders[repo_name]
 
         print("Repo Path: ", repo_path)

@@ -3,6 +3,8 @@ import os
 from typing import Dict
 from pathlib import Path
 
+from src.exceptions import CowboyClientError
+
 
 class Database:
     """
@@ -13,6 +15,9 @@ class Database:
         self.filepath = filepath
 
     def save_upsert(self, key, value):
+        """
+        Overwrites key if it exists, otherwise creates it
+        """
         try:
             data = self.get_all()
             data[key] = value
@@ -21,8 +26,23 @@ class Database:
         except IOError as e:
             print(f"Error saving to DB file: {e}")
 
-    def get(self, key):
-        return self.get_all().get(key, None)
+    def save_dict(self, key, value):
+        """
+        Adds a key/val pair to existing key
+        """
+        try:
+            data = self.get(key)
+            if not data:
+                data = {}
+
+            data[key] = value
+            self.save_upsert(key, data)
+
+        except IOError as e:
+            print(f"Error saving to DB file: {e}")
+
+    def get(self, key, default=None):
+        return self.get_all().get(key, default)
 
     def delete(self, key):
         data = self.get_all()

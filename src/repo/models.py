@@ -18,7 +18,7 @@ class RepoConfig:
     )
 
     # pytest specific confs (although they could be generally applicable)
-    py_confg: "PythonConf"
+    python_conf: "PythonConf"
 
     def serialize(self):
         return {
@@ -27,7 +27,7 @@ class RepoConfig:
             "forked_url": self.forked_url,
             "cloned_folders": self.cloned_folders,
             "source_folder": self.source_folder,
-            "py_confg": self.py_confg.__dict__,
+            "python_conf": self.python_conf.__dict__,
         }
 
 
@@ -47,7 +47,7 @@ class RepoConfigRepository:
         self.db = db
 
     def save(self, repo_config: RepoConfig):
-        self.db.save_upsert(key=repo_config.repo_name, value=repo_config.serialize())
+        self.db.save_dict(key="repos", value=repo_config.serialize())
 
     def find(self, repo_name: str) -> Optional[RepoConfig]:
         repo_config = self.db.get(repo_name)
@@ -57,12 +57,12 @@ class RepoConfigRepository:
         return None
 
     def rcfg_from_dict(self, d: dict) -> RepoConfig:
-        python_conf = PythonConf(**d["py_confg"])
+        python_conf = PythonConf(**d["python_conf"])
         return RepoConfig(
             repo_name=d["repo_name"],
             url=d["url"],
             forked_url=d["forked_url"],
             cloned_folders=d.get("cloned_folders", []),
             source_folder=d.get("source_folder", []),
-            py_confg=python_conf,
+            python_conf=python_conf,
         )

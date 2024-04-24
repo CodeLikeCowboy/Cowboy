@@ -1,11 +1,17 @@
 import click
 import yaml
 from pathlib import Path
+import sys
 
 from src.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from src.db.core import Database
+from src.http.base import APIClient
+from src.exceptions import CowboyClientError
+from src.config import SAD_KIRBY
+
 
 db = Database()
+api = APIClient(db)
 
 # init <repo_name> <config>
 
@@ -21,13 +27,24 @@ def cowboy_cli():
     pass
 
 
+@cowboy_cli.command("init")
+@click.argument("email")
+@click.argument("password")
+def init(email, password):
+    """Initializes user account for Cowboy."""
+
+    res = api.post("/register", {"email": email, "password": password})
+    if res.status_code == 200:
+        click.secho("Successfully registered user", fg="green")
+
+
 @cowboy_cli.group("repo")
 def cowboy_repo():
     """Container for all repo commands."""
     pass
 
 
-@cowboy_repo.command("init")
+@cowboy_repo.command("create")
 @click.argument("repo_name")
 @click.argument("config")
 def repo_init(repo_name, config):
@@ -45,7 +62,7 @@ def repo_init(repo_name, config):
     rc_repo = RepoConfigRepository(db)
     owner, repo_name = owner_name_from_url(repo_config["url"])
 
-    py_conf = PythonConf(
+    python_conf = PythonConf(
         cov_folders=repo_config.get("cov_folders", []),
         test_folder=repo_config.get("test_folder", ""),
         interp=repo_config.get("interp", ""),
@@ -58,8 +75,15 @@ def repo_init(repo_name, config):
         forked_url="",
         cloned_folders=[],
         source_folder="",
-        py_confg=py_conf,
+        python_conf=python_conf,
     )
+
+    # TODO: pop command to ask user if they want to overwrite
+    exists = rc_repo.find(repo_config.repo_name)
+    if exists:
+        click.secho("Overwriting config for existing repo", fg="yellow")
+
+    api.post("/repo/create", repo_config.serialize())
 
     rc_repo.save(repo_config)
     click.secho("Success.", fg="green")
@@ -70,12 +94,21 @@ def entrypoint():
 
     try:
         cowboy_cli()
+    except CowboyClientError as e:
+        click.secho(
+            f"UNHANDLED RUNTIME ERROR: {e}\nPlease file a bug report, {SAD_KIRBY}",
+            bold=True,
+            fg="red",
+        )
     except Exception as e:
-        import traceback
+        error_msg = f"ERROR: {e}"
+        if db.get("debug", False):
+            import traceback
 
-        tb = traceback.format_exc()
+            tb = traceback.format_exc()
+            error_msg = f"ERROR: {e}\n{tb}"
 
-        click.secho(f"ERROR: {e}\n{tb}", bold=True, fg="red")
+        click.secho(error_msg, bold=True, fg="red")
 
 
 if __name__ == "__main__":
