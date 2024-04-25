@@ -17,7 +17,6 @@ class RepoConfig:
     source_folder: (
         str  # source folder used for read/temp write operations; one to many relations
     )
-
     # pytest specific confs (although they could be generally applicable)
     python_conf: "PythonConf"
 
@@ -32,6 +31,8 @@ class RepoConfig:
         }
 
 
+# TODO:
+# consider adding more arguments from pytest here
 @dataclass
 class PythonConf:
     cov_folders: List[str]

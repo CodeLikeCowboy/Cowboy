@@ -11,7 +11,9 @@ from git import Repo
 
 from src.db.core import Database
 from src.utils import gen_random_name
+
 from src.repo.models import RepoConfig, PythonConf, RepoConfigRepository
+from src.repo.runner import PytestDiffRunner
 
 logger = getLogger("test_results")
 longterm_logger = getLogger("longterm")
@@ -28,7 +30,7 @@ class RepoTestContext:
         self,
         repo_path: Path,
         repo_name: str,
-        test_config: Dict,
+        repo_conf: RepoConfig,
         db_conn: Database,
         cloned_paths: List[Path] = [],
         config_logger: bool = True,
@@ -37,32 +39,26 @@ class RepoTestContext:
         num_repos: int = 1,
         cloned_dirs: List[Path] = [],
     ):
-        # check all cloned_dirs on same commit
-        if cloned_dirs:
-            self.verify_clone_dirs(cloned_dirs)
-
         # experiment id for tracking different runs
         self.exp_id = str(uuid.uuid4())[:8]
         # if config_logger:
         #     ConfigureLogger(repo_name, job_id=self.exp_id, log_debug=log_debug)
 
         self.repo_path = repo_path
-        # self.run_config = RepoRunConfig(self.repo_path, test_config)
-        # self.repo_name = self.run_config.repo_name
-
         self.db_conn = db_conn
 
         # BACKWARDS COMPAT: remove when unnessescary
         if not cloned_dirs:
             cloned_dirs = [repo_path]
 
-        # self.runner = PytestDiffRunner(self.run_config, cloned_dirs=cloned_dirs)
+        # TODO: support injecting this argument
+        self.runner = PytestDiffRunner(repo_conf)
 
         if verify:
             test_results = self.test_run()
 
     def test_run(self):
-        base_cov, stdout, stderr = self.runner.run_test(cache=False)
+        base_cov, stdout, stderr = self.runner.run_test()
         if stderr:
             logger.info(f"Error running test => STDERR:\n{stderr}")
 
@@ -175,7 +171,7 @@ class RepoTestContextFactory:
         repo_ctxt = RepoTestContext(
             repo_path,
             repo_name,
-            settings,
+            r_config,
             self.db_conn,
             config_logger=config_logger,
             log_debug=log_debug,

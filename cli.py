@@ -95,7 +95,7 @@ def repo_init(repo_name, config):
 @cowboy_repo.command("baseline")
 @click.argument("repo_name")
 def repo_baseline(repo_name):
-    repo_ctxt = RepoTestContextFactory(db).create_context(repo_name)
+    repo_ctxt = RepoTestContextFactory(db).create_context(repo_name, verify=True)
 
 
 def entrypoint():
