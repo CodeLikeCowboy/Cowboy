@@ -1,16 +1,18 @@
 {
+  "num_repos": 3,
   "debug": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjI3ODIxODguNjM4MzgsImVtYWlsIjoiaGVsbG93b3JsZDczQGdtYWlsLmNvbSJ9.DIi1s7H5WuQQak2uO8AaBpb41HJtQxkGulV_W3e8BUM",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjI4NjM4MTIuMzYxNDc5LCJlbWFpbCI6InJhbmRvMTIzNEBnbWFpbC5jb20ifQ.UQQIFDFEk6RopNX0PFmLO1hl_BZivFqGJkSLTw_HXmE",
   "repos": {
-    "codecov_codecov-cli": {
-      "repo_name": "codecov_codecov-cli",
+    "codecov-cli": {
+      "repo_name": "codecov-cli",
       "url": "https://github.com/codecov/codecov-cli",
-      "forked_url": "https://github.com/kongyipeng1/codecov-cli",
+      "forked_url": "",
       "cloned_folders": [
-        "repos\\codecov_codecov-cli\\nmjhkpej",
-        "repos\\codecov_codecov-cli\\igfddthp"
+        "repos\\codecov-cli\\mylpdlek",
+        "repos\\codecov-cli\\aeruadou",
+        "repos\\codecov-cli\\ubsnigpi"
       ],
-      "source_folder": "repos\\codecov_codecov-cli\\httfwavx",
+      "source_folder": "",
       "python_conf": {
         "cov_folders": [
           "codecov_cli"

@@ -26,9 +26,8 @@ class APIClient:
         url = urljoin(self.server, uri)
 
         res = requests.get(url, headers={"Authorization": f"Bearer {self.token}"})
-        self.parse_response(res)
 
-        return res
+        return self.parse_response(res)
 
     def post(self, uri: str, data: dict):
         url = urljoin(self.server, uri)
@@ -36,9 +35,15 @@ class APIClient:
         res = requests.post(
             url, json=data, headers={"Authorization": f"Bearer {self.token}"}
         )
-        self.parse_response(res)
 
-        return res
+        return self.parse_response(res)
+
+    def delete(self, uri: str):
+        url = urljoin(self.server, uri)
+
+        res = requests.delete(url, headers={"Authorization": f"Bearer {self.token}"})
+
+        return self.parse_response(res)
 
     def parse_response(self, res: requests.Response):
         """

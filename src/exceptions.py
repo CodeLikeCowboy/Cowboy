@@ -3,4 +3,8 @@ class CowboyClientError(Exception):
 
 
 class CowboyConfigError(Exception):
+    """
+    Errors with user config
+    """
+
     pass

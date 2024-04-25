@@ -4,15 +4,16 @@ from pathlib import Path
 import sys
 
 from src.repo.models import RepoConfig, RepoConfigRepository, PythonConf
-from src.repo.repo import RepoTestContext, RepoTestContextFactory
+from src.repo.repo import create_repo, delete_repo
 from src.db.core import Database
 from src.http.base import APIClient
 from src.exceptions import CowboyClientError
-from src.config import SAD_KIRBY
 
+from src.config import SAD_KIRBY, REPO_ROOT
 
 db = Database()
 api = APIClient(db)
+rc_repo = RepoConfigRepository(db)
 
 
 def owner_name_from_url(url: str):
@@ -43,23 +44,27 @@ def cowboy_repo():
     pass
 
 
+# TODO: handle naming conflicts ...
 @cowboy_repo.command("create")
-@click.argument("repo_name")
 @click.argument("config")
-def repo_init(repo_name, config):
+def repo_init(config):
     """Initializes a new repo."""
 
-    click.echo("Initializing new repo {}".format(repo_name))
+    with open(config, "r") as f:
+        repo_config = yaml.safe_load(f)
+
+    _, repo_name = owner_name_from_url(repo_config["url"])
+
     config_path = Path(config)
     if not config_path.exists():
         click.secho("Config file does not exist.", fg="red")
         return
 
-    with open(config_path, "r") as f:
-        repo_config = yaml.safe_load(f)
+    exists = rc_repo.find(repo_name)
+    if exists:
+        click.secho("Overwriting config for existing repo", fg="yellow")
 
-    rc_repo = RepoConfigRepository(db)
-    owner, repo_name = owner_name_from_url(repo_config["url"])
+    click.echo("Initializing new repo {}".format(repo_name))
 
     python_conf = PythonConf(
         cov_folders=repo_config.get("cov_folders", []),
@@ -69,7 +74,7 @@ def repo_init(repo_name, config):
     )
 
     repo_config = RepoConfig(
-        repo_name=owner + "_" + repo_name,
+        repo_name=repo_name,
         url=repo_config.get("url"),
         forked_url="",
         cloned_folders=[],
@@ -77,25 +82,40 @@ def repo_init(repo_name, config):
         python_conf=python_conf,
     )
 
-    # TODO: pop command to ask user if they want to overwrite
-    exists = rc_repo.find(repo_config.repo_name)
-    if exists:
-        click.secho("Overwriting config for existing repo", fg="yellow")
+    # call API to get forked_url first
+    res = api.post("/repo/create", repo_config.serialize())
+    forked_url = res.get("forked_url", "")
+    repo_config.forked_url = forked_url
 
-    # res = api.post("/repo/create", repo_config.serialize())
-    # forked_url = res["forked_url"]
-    # repo_config.forked_url = forked_url
-    rc_repo.save(repo_config)
+    # update conf with cloned folder paths
+    updated_conf = create_repo(repo_config, Path(REPO_ROOT), db.get("num_repos"))
+
+    rc_repo.save(updated_conf)
 
     click.secho(
-        "Successfully created repo: {}".format(repo_config.repo_name), fg="green"
+        "Successfully created repo: {}".format(updated_conf.repo_name), fg="green"
     )
 
 
 @cowboy_repo.command("baseline")
 @click.argument("repo_name")
 def repo_baseline(repo_name):
-    repo_ctxt = RepoTestContextFactory(db).create_context(repo_name, verify=True)
+    pass
+
+
+@cowboy_repo.command("delete")
+@click.argument("repo_name")
+def delete(repo_name):
+    """
+    Deletes all repos and reset the database
+    """
+    if not rc_repo.find(repo_name):
+        click.secho(f"No such repo {repo_name}", fg="red")
+        sys.exit(1)
+
+    rc_repo.delete(repo_name)
+    delete_repo(Path(REPO_ROOT), repo_name)
+    api.delete(f"/repo/delete/{repo_name}")
 
 
 def entrypoint():

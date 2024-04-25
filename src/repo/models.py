@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from typing import Any, List, Optional
+from pathlib import Path
 
 from src.db.core import Database
 from src.exceptions import CowboyConfigError
+from uuid import uuid4
 
 
 @dataclass
@@ -60,6 +62,9 @@ class RepoConfigRepository:
         self.db.save_dict(
             dict_key="repos", key=repo_config.repo_name, value=repo_config.serialize()
         )
+
+    def delete(self, repo_name: str):
+        self.db.delete_dict("repos", repo_name)
 
     def find(self, repo_name: str) -> Optional[RepoConfig]:
         repo_config = self.db.get_dict("repos", repo_name)

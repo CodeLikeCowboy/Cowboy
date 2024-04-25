@@ -51,12 +51,22 @@ class Database:
             return data[dict_key].get(key, None)
         return None
 
+    def delete_dict(self, dict_key, key):
+        data = self.get_all()
+        del data[dict_key][key]
+        with open(self.filepath, "w") as f:
+            json.dump(data, f)
+
     def delete(self, key):
         data = self.get_all()
         if key in data:
             del data[key]
             with open(self.filepath, "w") as f:
                 json.dump(data, f)
+
+    def reset(self):
+        with open(self.filepath, "w") as f:
+            f.write("{}")
 
     def get_all(self) -> Dict:
         try:
