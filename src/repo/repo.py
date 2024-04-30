@@ -70,7 +70,6 @@ class RepoTestContext:
         return base_cov
 
 
-# TODO: move to client
 def create_repo(repo_conf: RepoConfig, repo_root: Path, num_clones: int):
     """
     Clones the repo from the forked_url

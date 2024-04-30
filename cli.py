@@ -9,11 +9,15 @@ from src.db.core import Database
 from src.http.base import APIClient
 from src.exceptions import CowboyClientError
 
-from src.config import SAD_KIRBY, REPO_ROOT
+from src.config import SAD_KIRBY, REPO_ROOT, API_ENDPOINT, TASK_ENDPOINT
+
+from src.task_client import RunTestClient
 
 db = Database()
 api = APIClient(db)
 rc_repo = RepoConfigRepository(db)
+
+# client = RunTestClient(api, TASK_ENDPOINT)
 
 
 def owner_name_from_url(url: str):
@@ -100,7 +104,7 @@ def repo_init(config):
 @cowboy_repo.command("baseline")
 @click.argument("repo_name")
 def repo_baseline(repo_name):
-    pass
+    api.post(f"/tm/baseline", {"repo_name": repo_name, "test_modules": []})
 
 
 @cowboy_repo.command("delete")

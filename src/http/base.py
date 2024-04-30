@@ -4,7 +4,7 @@ import requests
 import logging
 import json
 
-from src.config import COWBOY_SERVER
+from src.config import API_ENDPOINT
 from src.db.core import Database
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class HTTPError(Exception):
 
 class APIClient:
     def __init__(self, db: Database):
-        self.server = COWBOY_SERVER
+        self.server = API_ENDPOINT
         self.db = db
 
         # user auth token
@@ -51,9 +51,10 @@ class APIClient:
         """
         json_res = res.json()
 
-        auth_token = json_res.get("token", None)
-        if auth_token:
-            self.db.save_upsert("token", auth_token)
+        if isinstance(json_res, dict):
+            auth_token = json_res.get("token", None)
+            if auth_token:
+                self.db.save_upsert("token", auth_token)
 
         if res.status_code == 401:
             raise HTTPError("Unauthorized, are you registered or logged in?")

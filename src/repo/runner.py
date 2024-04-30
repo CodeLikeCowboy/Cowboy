@@ -6,8 +6,8 @@ import re
 import json
 
 from src.repo.models import PythonConf, RepoConfig
-from src.repo.coverage import TestCoverage
-from src.repo.patch_ctxt import PatchFileContext, PatchFile, GitRepo
+from cowboy_lib.repo.repository import PatchFileContext, PatchFile, GitRepo
+from cowboy_lib.coverage import CoverageResult
 
 from src.exceptions import CowboyClientError
 
@@ -69,72 +69,6 @@ def hash_coverage_inputs(directory: Path, cmd_str: str) -> str:
     return combined_hash.hexdigest()
 
 
-class CoverageResult:
-    """
-    Represents the result of a coverage run
-    """
-
-    def __init__(self, stdout: str, stderr: str, coverage_json: Dict):
-        self.coverage: TestCoverage = TestCoverage.from_coverage_file(coverage_json)
-        # self.coverage2 = TestCoverage.from_coverage_report(stdout)
-
-        self.failed: Dict[str, TestError] = self._parse_failed_tests(stdout)
-        self.stderr = stderr
-        # generated functions
-        self.gen_funcs = []
-
-    # TODO: we should parse errors as well
-    def _parse_failed_tests(self, stdout: str) -> List[Tuple[str, TestError]]:
-        """
-        Parse every failed test from pytest output
-        """
-        pattern = r"FAILED\s+(?:\S+?)::(\S+?)\s+-"
-        failed_modules = re.findall(pattern, stdout)
-
-        # NOTE: currently treating parameterized tests as single tests
-        total_failed_tests = set()
-
-        # parse test_module names
-        for failed_test in failed_modules:
-            # logger.info(f"Failed tests: {failed_test}")
-
-            if "[" in failed_test:
-                failed_test = failed_test.split("[")[0]
-
-            if "::" in failed_test:
-                test_module = failed_test.split("::")[0]
-                failed_test = failed_test.split("::")[1]
-                total_failed_tests.add(f"{test_module}.{failed_test}")
-
-            total_failed_tests.add(failed_test)
-
-        logger.info(f"Total failed tests: {len(failed_modules)}")
-
-        # parse error info
-        pattern = r"_{2,}(\s+\b[\w\.]+)(?:\[\S+\])?\s+_{2,}\n(.*?)\n[_|-]"
-        test_info = re.findall(pattern, stdout, re.DOTALL)
-
-        return {f.strip(): error.rstrip() for f, error in test_info}
-
-    def get_failed(self, test_name):
-        """
-        Did test_name fail in this coverage run?
-        """
-        return self.failed.get(test_name, None)
-
-    def __bool__(self):
-        return bool(self.coverage)
-
-    def get_coverage(self):
-        return self.coverage
-
-    # actually parse out the stderr
-    def get_error(self):
-        if not self.stderr:
-            raise Exception("No error found")
-        return self.stderr
-
-
 from contextlib import contextmanager
 import queue
 
@@ -145,6 +79,7 @@ class LockedRepos:
     """
 
     def __init__(self, path_n_git: List[Tuple[Path, GitRepo]]):
+        self.capacity = len(path_n_git)
         self.queue = queue.Queue()
         for item in path_n_git:
             self.queue.put(item)
