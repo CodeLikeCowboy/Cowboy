@@ -47,7 +47,7 @@ class APIClient:
 
     def parse_response(self, res: requests.Response):
         """
-        Parses token from response and HTTP exceptions
+        Parses token from response and handles HTTP exceptions, including retries and timeouts
         """
         json_res = res.json()
 
@@ -65,5 +65,4 @@ class APIClient:
 
         if res.status_code == 500:
             raise HTTPError("Internal server error")
-
-        return json_res
+        return json_res, res.status_code

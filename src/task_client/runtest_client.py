@@ -4,9 +4,9 @@ import time
 from src.config import TASK_ENDPOINT
 
 from src.repo.runner import PytestDiffRunner
-from src.http.base import APIClient
 from src.db.core import Database
 from src.repo.models import RepoConfig, RepoConfigRepository
+from src.http import APIClient
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -39,14 +39,16 @@ class RunTestClient:
         """
         Returns runner for repo_name
         """
-        repo_conf = self.rconf_repo.find(repo_name)
+        repo_conf, status = self.api_client.get(f"/repo/get/{repo_name}")
+        repo_conf = RepoConfig(**repo_conf)
+        print("Received: ", repo_conf)
         return PytestDiffRunner(repo_conf)
 
     def fetch_tasks_thread(self):
         """
         Fetches task from server, single thread
         """
-        task_res = self.api_client.get("/task/get")
+        task_res, status = self.api_client.get("/task/get")
         if task_res:
             for t in task_res:
                 print(t)

@@ -22,6 +22,9 @@ class RepoConfig:
     # pytest specific confs (although they could be generally applicable)
     python_conf: "PythonConf"
 
+    def __post_init__(self):
+        self.python_conf = PythonConf(**self.python_conf)
+
     def serialize(self):
         return {
             "repo_name": self.repo_name,

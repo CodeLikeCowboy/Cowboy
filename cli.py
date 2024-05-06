@@ -4,14 +4,14 @@ from pathlib import Path
 import sys
 
 from src.repo.models import RepoConfig, RepoConfigRepository, PythonConf
-from src.repo.repo import create_repo, delete_repo
-from src.db.core import Database
-from src.http.base import APIClient
+from src.repo.repo import create_cloned_folders, delete_cloned_folders
+from src.db.core import Database, KeyNotFoundError
+from src.http.base import APIClient, HTTPError
+
+
 from src.exceptions import CowboyClientError
 
-from src.config import SAD_KIRBY, REPO_ROOT, API_ENDPOINT, TASK_ENDPOINT
-
-from src.task_client import RunTestClient
+from src.config import SAD_KIRBY, REPO_ROOT
 
 db = Database()
 api = APIClient(db)
@@ -50,24 +50,17 @@ def cowboy_repo():
 
 # TODO: handle naming conflicts ...
 @cowboy_repo.command("create")
-@click.argument("config")
-def repo_init(config):
+@click.argument("config_path")
+def repo_init(config_path):
     """Initializes a new repo."""
-
-    with open(config, "r") as f:
-        repo_config = yaml.safe_load(f)
-
-    _, repo_name = owner_name_from_url(repo_config["url"])
-
-    config_path = Path(config)
-    if not config_path.exists():
+    try:
+        with open(config_path, "r") as f:
+            repo_config = yaml.safe_load(f)
+    except FileNotFoundError:
         click.secho("Config file does not exist.", fg="red")
         return
 
-    exists = rc_repo.find(repo_name)
-    if exists:
-        click.secho("Overwriting config for existing repo", fg="yellow")
-
+    repo_name = repo_config["repo_name"]
     click.echo("Initializing new repo {}".format(repo_name))
 
     python_conf = PythonConf(
@@ -86,19 +79,21 @@ def repo_init(config):
         python_conf=python_conf,
     )
 
-    # call API to get forked_url first
-    res = api.post("/repo/create", repo_config.serialize())
-    forked_url = res.get("forked_url", "")
-    repo_config.forked_url = forked_url
-
-    # update conf with cloned folder paths
-    updated_conf = create_repo(repo_config, Path(REPO_ROOT), db.get("num_repos"))
-
-    rc_repo.save(updated_conf)
-
-    click.secho(
-        "Successfully created repo: {}".format(updated_conf.repo_name), fg="green"
+    cloned_folders = create_cloned_folders(
+        repo_config, Path(REPO_ROOT), db.get("num_repos")
     )
+    repo_config.cloned_folders = cloned_folders
+
+    try:
+        api.post("/repo/create", repo_config.serialize())
+        click.secho("Successfully created repo: {}".format(repo_name), fg="green")
+
+    # should we differentiate between timeout/requests.exceptions.ConnectionError?
+    except Exception as e:
+        click.secho(f"Repo creation failed on server: {e}", fg="red")
+        click.secho(f"Rolling back repo creation", fg="red")
+        delete_cloned_folders(Path(REPO_ROOT), repo_name)
+        return
 
 
 @cowboy_repo.command("baseline")
@@ -113,13 +108,14 @@ def delete(repo_name):
     """
     Deletes all repos and reset the database
     """
-    if not rc_repo.find(repo_name):
-        click.secho(f"No such repo {repo_name}", fg="red")
-        sys.exit(1)
+    _, status = api.delete(f"/repo/delete/{repo_name}")
+    if status != 200:
+        click.secho(f"Failed to delete repo {repo_name}", fg="red")
+        return
 
-    rc_repo.delete(repo_name)
-    delete_repo(Path(REPO_ROOT), repo_name)
-    api.delete(f"/repo/delete/{repo_name}")
+    delete_cloned_folders(Path(REPO_ROOT), repo_name)
+
+    click.secho(f"Deleted repo {repo_name}", fg="green")
 
 
 def entrypoint():
