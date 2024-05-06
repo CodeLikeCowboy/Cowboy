@@ -1,18 +1,15 @@
 import os
 import subprocess
 from typing import List, Tuple, NewType, Dict
-import time
-import re
 import json
 
 from src.repo.models import PythonConf, RepoConfig
 from cowboy_lib.repo.repository import PatchFileContext, PatchFile, GitRepo
 from cowboy_lib.coverage import CoverageResult
 
-from src.exceptions import CowboyClientError
+from cowboy_lib.api.runner.shared import RunTestTaskArgs, FunctionArg
 
-# This we are going to get from the request
-# from src.ast.code import Function
+from src.exceptions import CowboyClientError
 
 import hashlib
 
@@ -24,15 +21,6 @@ longterm_logger = getLogger("longterm")
 
 COVERAGE_FILE = "coverage.json"
 TestError = NewType("TestError", str)
-
-
-class TestFunction:
-    def __init__(self, name: str, is_meth: bool):
-        self.name = name
-        self.is_meth = is_meth
-
-    def is_meth(self):
-        return self.is_meth
 
 
 class DiffFileCreation(Exception):
@@ -102,7 +90,7 @@ class LockedRepos:
 
 
 def get_exclude_path(
-    func: TestFunction,
+    func: FunctionArg,
     rel_fp: Path,
 ):
     """
@@ -110,7 +98,7 @@ def get_exclude_path(
     """
     excl_name = (
         (func.name.split(".")[0] + "::" + func.name.split(".")[1])
-        if func.is_meth()
+        if func.is_meth
         else func.name
     )
 
@@ -181,7 +169,7 @@ class PytestDiffRunner:
         self.verify_clone_dirs(repo_paths)
 
     def _get_exclude_tests_arg_str(
-        self, excluded_tests: List[Tuple[TestFunction, Path]], cloned_path: Path
+        self, excluded_tests: List[Tuple[FunctionArg, Path]], cloned_path: Path
     ):
         """
         Convert the excluded tests into Pytest deselect args
@@ -189,10 +177,13 @@ class PytestDiffRunner:
         if not excluded_tests:
             return ""
 
+        # PATCH: just concatenate the path with base folder
         tranf_paths = []
         for test, test_fp in excluded_tests:
-            # find the common shared folder
-            rel_path = test_fp.parts[len(cloned_path.parts) - 1 :]
+            # this pytest path arg only takes the relative path from source folder
+            # find relative path as the difference between the cloned path and the test_fp
+            # since all cloned folders start from same root
+            rel_path = test_fp.parts[len(cloned_path.parts) :]
             tranf_paths.append(get_exclude_path(test, Path(*rel_path)))
 
         return "--deselect=" + " --deselect=".join(tranf_paths)
@@ -247,14 +238,16 @@ class PytestDiffRunner:
 
         return " ".join(cmd)
 
-    def run_test(
-        self,
-        exclude_tests: List[str] = [],
-        include_tests: List[str] = [],
-        patch_file: PatchFile = None,
-    ) -> Tuple[CoverageResult, str, str]:
+    def run_test(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
         with self.test_repos.acquire_one() as repo_inst:
             cloned_path, git_repo = repo_inst
+
+            patch_file = args.patch_file
+            if patch_file:
+                patch_file.convert_path(cloned_path)
+
+            exclude_tests = args.exclude_tests
+            include_tests = args.include_tests
 
             env = os.environ.copy()
             if self.python_path:

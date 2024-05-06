@@ -63,4 +63,7 @@ class APIClient:
             message = res.json()["detail"][0]["msg"]
             raise HTTPError(json.dumps(res.json(), indent=2))
 
+        if res.status_code == 500:
+            raise HTTPError("Internal server error")
+
         return json_res

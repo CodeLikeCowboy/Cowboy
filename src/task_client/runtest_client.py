@@ -1,29 +1,30 @@
 import threading
 import time
-from queue import Queue
-import requests
 
 from src.config import TASK_ENDPOINT
 
 from src.repo.runner import PytestDiffRunner
-from src.shared.models import RunnerTask
 from src.http.base import APIClient
 from src.db.core import Database
 from src.repo.models import RepoConfig, RepoConfigRepository
 
 from concurrent.futures import ThreadPoolExecutor
 
+from cowboy_lib.api.runner.shared import RunTestTaskClient
+
+import json
+
 
 class RunTestClient:
     def __init__(
         self,
-        runner: PytestDiffRunner,
+        rconf_repo: RepoConfigRepository,
         api_client: APIClient,
         fetch_endpoint: str,
         # task_complete: str,
         sleep_interval=5,
     ):
-        self.runner = runner
+        self.rconf_repo = rconf_repo
         self.run_executor = ThreadPoolExecutor(max_workers=5)
         self.api_client = api_client
         self.fetch_endpoint = fetch_endpoint
@@ -34,6 +35,13 @@ class RunTestClient:
 
         self.poll_server()
 
+    def get_runner(self, repo_name: str) -> PytestDiffRunner:
+        """
+        Returns runner for repo_name
+        """
+        repo_conf = self.rconf_repo.find(repo_name)
+        return PytestDiffRunner(repo_conf)
+
     def fetch_tasks_thread(self):
         """
         Fetches task from server, single thread
@@ -41,22 +49,22 @@ class RunTestClient:
         task_res = self.api_client.get("/task/get")
         if task_res:
             for t in task_res:
-                task = RunnerTask(**t)
+                print(t)
+                task = RunTestTaskClient(**t, **t["task_args"])
+                print("Task: ", task)
                 threading.Thread(target=self.run_task_thread, args=(task,)).start()
 
-    def run_task_thread(self, task: RunnerTask):
+    def run_task_thread(self, task: RunTestTaskClient):
         """
         Runs task fetched from server, launched for every new task
         """
-
-        cov_res, *_ = self.runner.run_test(**task.args)
-
+        runner = self.get_runner(task.repo_name)
+        cov_res, *_ = runner.run_test(task.task_args)
         result_task = task
         result_task.result = cov_res.to_dict()
 
-        print("Sending task from client: ", result_task.__dict__)
-
-        self.api_client.post(f"/task/complete", result_task.__dict__)
+        # Note: need json() vs dict(), cuz json() actually converts nested objects, unlike dict
+        self.api_client.post(f"/task/complete", json.loads(result_task.json()))
 
     def poll_server(self):
         while True:
@@ -69,7 +77,6 @@ class RunTestClient:
 if __name__ == "__main__":
     db = Database()
     api = APIClient(db)
-    repo_conf = RepoConfigRepository(db).find("codecov-cli")
-    runner = PytestDiffRunner(repo_conf)
+    rconf_repo = RepoConfigRepository(db)
 
-    RunTestClient(runner, api, TASK_ENDPOINT)
+    RunTestClient(rconf_repo, api, TASK_ENDPOINT)

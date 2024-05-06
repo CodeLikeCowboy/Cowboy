@@ -6,6 +6,11 @@ from pathlib import Path
 from src.exceptions import CowboyClientError
 
 
+class KeyNotFoundError(CowboyClientError):
+    def __init__(self, key):
+        super().__init__(f"Key {key} not found in DB")
+
+
 class Database:
     """
     KV DB impl
@@ -63,6 +68,8 @@ class Database:
             del data[key]
             with open(self.filepath, "w") as f:
                 json.dump(data, f)
+        else:
+            raise KeyNotFoundError(key)
 
     def reset(self):
         with open(self.filepath, "w") as f:
