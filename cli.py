@@ -85,7 +85,10 @@ def repo_init(config_path):
     repo_config.cloned_folders = cloned_folders
 
     try:
+        import json
+
         api.post("/repo/create", repo_config.serialize())
+        print(json.dumps(repo_config.serialize(), indent=4))
         click.secho("Successfully created repo: {}".format(repo_name), fg="green")
 
     # should we differentiate between timeout/requests.exceptions.ConnectionError?
@@ -99,7 +102,18 @@ def repo_init(config_path):
 @cowboy_repo.command("baseline")
 @click.argument("repo_name")
 def repo_baseline(repo_name):
-    api.post(f"/tm/baseline", {"repo_name": repo_name, "test_modules": []})
+    api.post(
+        f"/tm/baseline",
+        {
+            "repo_name": repo_name,
+            "test_modules": [
+                "test_codecov_cli.py",
+                "TestUploadCollectionResultFile",
+                "TestRunners",
+                "TestLabelAnalysisRequestResult",
+            ],
+        },
+    )
 
 
 @cowboy_repo.command("delete")

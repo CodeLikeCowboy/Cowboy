@@ -75,7 +75,7 @@ class LockedRepos:
     @contextmanager
     def acquire_one(self) -> Tuple[Path, GitRepo]:
         path, git_repo = self.queue.get()  # This will block if the queue is empty
-        logger.info(f"Acquiring repo: {path.name}")
+        print(f"Repo acquired: {path.name}")
         try:
             yield (path, git_repo)
         finally:
@@ -136,6 +136,8 @@ class PytestDiffRunner:
                 )
             )
         )
+
+        print("Initialized locked repos: ", self.test_repos)
 
         if len(self.test_repos) == 0:
             raise CowboyClientError("No cloned repos created, perhaps run init again?")
@@ -257,7 +259,7 @@ class PytestDiffRunner:
             include_tests = self._get_include_tests_arg_str(include_tests)
             cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
 
-            print(f"Running with command: {cmd_str}")
+            # print(f"Running with command: {cmd_str}")
 
             with PatchFileContext(git_repo, patch_file):
                 proc = subprocess.Popen(

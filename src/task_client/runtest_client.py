@@ -8,11 +8,11 @@ from src.db.core import Database
 from src.repo.models import RepoConfig, RepoConfigRepository
 from src.http import APIClient
 
-from concurrent.futures import ThreadPoolExecutor
-
 from cowboy_lib.api.runner.shared import RunTestTaskClient
 
 import json
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 
 class RunTestClient:
@@ -29,7 +29,16 @@ class RunTestClient:
         self.api_client = api_client
         self.fetch_endpoint = fetch_endpoint
 
+        # each repo has one runner
+        self.runners = {}
+
+        # curr tasks : technically dont need since we await every new
+        # tasks via runner.acquire_one() but use for debugging
+        self.curr_t = []
+        self.completed = 0
+
         # retrieved tasks
+        self.lock = Lock()
         self.retrieved_t = []
         self.start_t = []
 
@@ -37,12 +46,18 @@ class RunTestClient:
 
     def get_runner(self, repo_name: str) -> PytestDiffRunner:
         """
-        Returns runner for repo_name
+        Initialize or retrieve an existing runner for Repo
         """
+        runner = self.runners.get(repo_name, "")
+        if runner:
+            return runner
+
         repo_conf, status = self.api_client.get(f"/repo/get/{repo_name}")
         repo_conf = RepoConfig(**repo_conf)
-        print("Received: ", repo_conf)
-        return PytestDiffRunner(repo_conf)
+        runner = PytestDiffRunner(repo_conf)
+        self.runners[repo_name] = runner
+
+        return runner
 
     def fetch_tasks_thread(self):
         """
@@ -51,9 +66,8 @@ class RunTestClient:
         task_res, status = self.api_client.get("/task/get")
         if task_res:
             for t in task_res:
-                print(t)
                 task = RunTestTaskClient(**t, **t["task_args"])
-                print("Task: ", task)
+                self.curr_t.append(task.task_id)
                 threading.Thread(target=self.run_task_thread, args=(task,)).start()
 
     def run_task_thread(self, task: RunTestTaskClient):
@@ -67,6 +81,12 @@ class RunTestClient:
 
         # Note: need json() vs dict(), cuz json() actually converts nested objects, unlike dict
         self.api_client.post(f"/task/complete", json.loads(result_task.json()))
+
+        with self.lock:
+            self.curr_t.remove(task.task_id)
+            self.completed += 1
+            print("Outstanding tasks: ", len(self.curr_t))
+            print("Total completed: ", self.completed)
 
     def poll_server(self):
         while True:
