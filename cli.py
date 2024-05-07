@@ -107,10 +107,11 @@ def repo_baseline(repo_name):
         {
             "repo_name": repo_name,
             "test_modules": [
-                "test_codecov_cli.py",
-                "TestUploadCollectionResultFile",
-                "TestRunners",
-                "TestLabelAnalysisRequestResult",
+                "TestWoodpecker",
+                # "test_codecov_cli.py",
+                # "TestUploadCollectionResultFile",
+                # "TestRunners",
+                # "TestLabelAnalysisRequestResult",
             ],
         },
     )

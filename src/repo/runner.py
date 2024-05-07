@@ -182,11 +182,7 @@ class PytestDiffRunner:
         # PATCH: just concatenate the path with base folder
         tranf_paths = []
         for test, test_fp in excluded_tests:
-            # this pytest path arg only takes the relative path from source folder
-            # find relative path as the difference between the cloned path and the test_fp
-            # since all cloned folders start from same root
-            rel_path = test_fp.parts[len(cloned_path.parts) :]
-            tranf_paths.append(get_exclude_path(test, Path(*rel_path)))
+            tranf_paths.append(get_exclude_path(test, test_fp))
 
         return "--deselect=" + " --deselect=".join(tranf_paths)
 
@@ -246,7 +242,8 @@ class PytestDiffRunner:
 
             patch_file = args.patch_file
             if patch_file:
-                patch_file.convert_path(cloned_path)
+                patch_file.path = cloned_path / patch_file.path
+                print(f"Using patch file: {patch_file.path}")
 
             exclude_tests = args.exclude_tests
             include_tests = args.include_tests
@@ -259,7 +256,7 @@ class PytestDiffRunner:
             include_tests = self._get_include_tests_arg_str(include_tests)
             cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
 
-            # print(f"Running with command: {cmd_str}")
+            print(f"Running with command: {cmd_str}")
 
             with PatchFileContext(git_repo, patch_file):
                 proc = subprocess.Popen(
