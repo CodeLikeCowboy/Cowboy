@@ -5,3 +5,5 @@ TASK_ENDPOINT = f"{API_ENDPOINT}/task/get"
 
 SAD_KIRBY = "૮₍˶Ó﹏Ò ⑅₎ა"
 REPO_ROOT = "repos"
+
+USER_CONFIG = ".user"

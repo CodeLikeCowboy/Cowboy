@@ -5,8 +5,8 @@ import sys
 
 from src.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from src.repo.repo import create_cloned_folders, delete_cloned_folders
-from src.db.core import Database, KeyNotFoundError
-from src.http.base import APIClient, HTTPError
+from src.db.core import Database
+from src.http.base import APIClient
 
 
 from src.exceptions import CowboyClientError
@@ -31,15 +31,30 @@ def cowboy_cli():
     pass
 
 
+# TODO: make this into a dialogue and store the results in DB.json, inside
+# of the repo root folder
 @cowboy_cli.command("init")
+def init():
+    """Initializes user account for Cowboy."""
+    try:
+        with open(".user", "r") as f:
+            user_conf = yaml.safe_load(f)
+    except FileNotFoundError:
+        click.secho("Config file does not exist.", fg="red")
+        return
+
+    _, status = api.post("/register", user_conf)
+    if status == 200:
+        click.secho("Successfully registered user", fg="green")
+
+
+@cowboy_cli.command("login")
 @click.argument("email")
 @click.argument("password")
-def init(email, password):
-    """Initializes user account for Cowboy."""
-
-    res = api.post("/register", {"email": email, "password": password})
-    if res.status_code == 200:
-        click.secho("Successfully registered user", fg="green")
+def login(email, password):
+    _, status = api.post("/login", {"email": email, "password": password})
+    if status == 200:
+        click.secho("Successfully logged in", fg="green")
 
 
 @cowboy_cli.group("repo")
@@ -73,7 +88,6 @@ def repo_init(config_path):
     repo_config = RepoConfig(
         repo_name=repo_name,
         url=repo_config.get("url"),
-        forked_url="",
         cloned_folders=[],
         source_folder="",
         python_conf=python_conf,

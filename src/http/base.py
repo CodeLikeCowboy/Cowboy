@@ -54,6 +54,7 @@ class APIClient:
         if isinstance(json_res, dict):
             auth_token = json_res.get("token", None)
             if auth_token:
+                print("Successful login, saving token...")
                 self.db.save_upsert("token", auth_token)
 
         if res.status_code == 401:

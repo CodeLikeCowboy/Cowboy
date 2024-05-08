@@ -1,1 +1,45 @@
-{"num_repos": 3, "debug": true, "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjI4NjM4MTIuMzYxNDc5LCJlbWFpbCI6InJhbmRvMTIzNEBnbWFpbC5jb20ifQ.UQQIFDFEk6RopNX0PFmLO1hl_BZivFqGJkSLTw_HXmE", "repos": {"codecov-cli": {"repo_name": "codecov-cli", "url": "https://github.com/codecov/codecov-cli", "forked_url": "", "cloned_folders": ["repos\\codecov-cli\\fpuscpgs", "repos\\codecov-cli\\vlquzgyf", "repos\\codecov-cli\\vphwzexj"], "source_folder": "", "python_conf": {"cov_folders": ["codecov_cli"], "test_folder": "", "interp": "C:\\Users\\jpeng\\Documents\\business\\auto_test\\src\\config\\codecov-cli\\codecov-cli-rAUOo5WG\\Scripts\\python.exe", "pythonpath": ""}}, "codecov-cli-neuteured": {"repo_name": "codecov-cli-neuteured", "url": "https://github.com/JohnPeng47/codecov-cli-neuteured", "forked_url": "", "cloned_folders": ["repos\\codecov-cli-neuteured\\uhlbdxzg", "repos\\codecov-cli-neuteured\\gdmkpzgb", "repos\\codecov-cli-neuteured\\ajxozadf"], "source_folder": "", "python_conf": {"cov_folders": ["codecov_cli"], "test_folder": "", "interp": "C:\\Users\\jpeng\\Documents\\business\\auto_test\\src\\config\\codecov-cli\\codecov-cli-rAUOo5WG\\Scripts\\python.exe", "pythonpath": ""}}}}
+{
+  "num_repos": 3,
+  "debug": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjM5NjA4OTIuNDExNjY1LCJlbWFpbCI6ImNvd2JveXRlc3RAZ21haWwuY29tIn0.E_Ae_xO_djiFsxsZ4lfDTV8q3m-Nz3IZAOo5IFYbfTI",
+  "repos": {
+    "codecov-cli": {
+      "repo_name": "codecov-cli",
+      "url": "https://github.com/codecov/codecov-cli",
+      "forked_url": "",
+      "cloned_folders": [
+        "repos\\codecov-cli\\fpuscpgs",
+        "repos\\codecov-cli\\vlquzgyf",
+        "repos\\codecov-cli\\vphwzexj"
+      ],
+      "source_folder": "",
+      "python_conf": {
+        "cov_folders": [
+          "codecov_cli"
+        ],
+        "test_folder": "",
+        "interp": "C:\\Users\\jpeng\\Documents\\business\\auto_test\\src\\config\\codecov-cli\\codecov-cli-rAUOo5WG\\Scripts\\python.exe",
+        "pythonpath": ""
+      }
+    },
+    "codecov-cli-neuteured": {
+      "repo_name": "codecov-cli-neuteured",
+      "url": "https://github.com/JohnPeng47/codecov-cli-neuteured",
+      "forked_url": "",
+      "cloned_folders": [
+        "repos\\codecov-cli-neuteured\\uhlbdxzg",
+        "repos\\codecov-cli-neuteured\\gdmkpzgb",
+        "repos\\codecov-cli-neuteured\\ajxozadf"
+      ],
+      "source_folder": "",
+      "python_conf": {
+        "cov_folders": [
+          "codecov_cli"
+        ],
+        "test_folder": "",
+        "interp": "C:\\Users\\jpeng\\Documents\\business\\auto_test\\src\\config\\codecov-cli\\codecov-cli-rAUOo5WG\\Scripts\\python.exe",
+        "pythonpath": ""
+      }
+    }
+  }
+}

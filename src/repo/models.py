@@ -2,40 +2,9 @@ from dataclasses import dataclass
 from typing import Any, List, Optional
 from pathlib import Path
 
+from pydantic import BaseModel, validator
 from src.db.core import Database
 from src.exceptions import CowboyConfigError
-from uuid import uuid4
-
-
-@dataclass
-class RepoConfig:
-    repo_name: str  # of form owner_repo
-    url: str
-    forked_url: str  # URL pointing to our forked repo
-    cloned_folders: List[
-        str
-    ]  # list of cloned folders used for parallelizing run_test; many to many relationship
-    # with instantiated repo contexts
-    source_folder: (
-        str  # source folder used for read/temp write operations; one to many relations
-    )
-    # pytest specific confs (although they could be generally applicable)
-    python_conf: "PythonConf"
-
-    # jank af
-    def __post_init__(self):
-        if isinstance(self.python_conf, dict):
-            self.python_conf = PythonConf(**self.python_conf)
-
-    def serialize(self):
-        return {
-            "repo_name": self.repo_name,
-            "url": self.url,
-            "forked_url": self.forked_url,
-            "cloned_folders": self.cloned_folders,
-            "source_folder": self.source_folder,
-            "python_conf": self.python_conf.__dict__,
-        }
 
 
 # TODO:
@@ -57,6 +26,47 @@ class PythonConf:
             v = getattr(self, k)
             if not v:
                 raise CowboyConfigError(f"{k} must be set in config")
+
+
+class RepoConfig(BaseModel):
+    repo_name: str  # of form owner_repo
+    url: str
+    cloned_folders: List[
+        str
+    ]  # list of cloned folders used for parallelizing run_test; many to many relationship
+    # with instantiated repo contexts
+    source_folder: (
+        str  # source folder used for read/temp write operations; one to many relations
+    )
+    # pytest specific confs (although they could be generally applicable)
+    python_conf: "PythonConf"
+
+    @validator("url")
+    def validate_url(cls, v):
+        import re
+
+        if not re.match(r"^https:\/\/github\.com\/[\w-]+\/[\w-]+(\.git)?$", v):
+            raise ValueError(
+                "URL must be a valid GitHub HTTPS URL and may end with .git"
+            )
+        # if v.endswith(".git"):
+        #     raise ValueError("URL should not end with .git")
+        if re.match(r"^git@github\.com:[\w-]+\/[\w-]+\.git$", v):
+            raise ValueError("SSH URL format is not allowed")
+        return v
+
+    def __post_init__(self):
+        if isinstance(self.python_conf, dict):
+            self.python_conf = PythonConf(**self.python_conf)
+
+    def serialize(self):
+        return {
+            "repo_name": self.repo_name,
+            "url": self.url,
+            "cloned_folders": self.cloned_folders,
+            "source_folder": self.source_folder,
+            "python_conf": self.python_conf.__dict__,
+        }
 
 
 class RepoConfigRepository:
@@ -83,7 +93,6 @@ class RepoConfigRepository:
         return RepoConfig(
             repo_name=d["repo_name"],
             url=d["url"],
-            forked_url=d["forked_url"],
             cloned_folders=d.get("cloned_folders", []),
             source_folder=d.get("source_folder", []),
             python_conf=python_conf,
