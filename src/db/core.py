@@ -1,7 +1,6 @@
 import json
 import os
 from typing import Dict
-from pathlib import Path
 
 from src.exceptions import CowboyClientError
 
@@ -16,8 +15,16 @@ class Database:
     KV DB impl
     """
 
+    _instance = None
+
+    def __new__(cls, filepath: str = "src/db/db.json"):
+        if cls._instance is None:
+            cls._instance = super(Database, cls).__new__(cls)
+            cls._instance.filepath = filepath
+        return cls._instance
+
     def __init__(self, filepath: str = "src/db/db.json"):
-        self.filepath = filepath
+        pass
 
     def save_upsert(self, key, value):
         """

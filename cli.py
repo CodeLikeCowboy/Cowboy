@@ -8,6 +8,8 @@ from src.repo.repo import create_cloned_folders, delete_cloned_folders
 from src.db.core import Database
 from src.http.base import APIClient
 
+from src.api_cmds import api_baseline, api_coverage
+
 
 from src.exceptions import CowboyClientError
 
@@ -101,9 +103,15 @@ def repo_init(config_path):
     try:
         import json
 
-        api.post("/repo/create", repo_config.serialize())
+        api.post("/repo/create", repo_config.serialize())       
         print(json.dumps(repo_config.serialize(), indent=4))
         click.secho("Successfully created repo: {}".format(repo_name), fg="green")
+
+        # starting baseline
+        click.secho("Starting baseline", fg="green")
+
+        api_coverage(repo_name)
+        api_baseline(repo_name)
 
     # should we differentiate between timeout/requests.exceptions.ConnectionError?
     except Exception as e:
@@ -113,22 +121,17 @@ def repo_init(config_path):
         return
 
 
+# TODO: remove these commands?
+@cowboy_repo.command("coverage")
+@click.argument("repo_name")
+def cmd_coverage(repo_name):
+    api_coverage(repo_name)
+
+
 @cowboy_repo.command("baseline")
 @click.argument("repo_name")
-def repo_baseline(repo_name):
-    api.post(
-        f"/tm/baseline",
-        {
-            "repo_name": repo_name,
-            "test_modules": [
-                "TestWoodpecker",
-                # "test_codecov_cli.py",
-                # "TestUploadCollectionResultFile",
-                # "TestRunners",
-                # "TestLabelAnalysisRequestResult",
-            ],
-        },
-    )
+def cmd_baseline(repo_name):
+    api_baseline(repo_name)
 
 
 @cowboy_repo.command("delete")

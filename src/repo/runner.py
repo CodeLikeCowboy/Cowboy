@@ -271,7 +271,6 @@ class PytestDiffRunner:
                 if stderr:
                     logger.info(f"Stderr: {stderr}")
 
-                # we want
                 # read coverage
                 with open(cloned_path / COVERAGE_FILE, "r") as f:
                     coverage_json = json.loads(f.read())
