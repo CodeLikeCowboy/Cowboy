@@ -17,6 +17,7 @@ from src.http import APIClient
 import subprocess
 from datetime import datetime, timedelta
 
+import sys
 
 # note that the BGClient is meant to be longer living than a CLI session
 # which is why we are spinning off a separate process
@@ -47,8 +48,8 @@ class BGRunner:
                 str(self.heart_beat_fp),
                 str(self.heart_beat_interval),
             ],
-            # stdout=subprocess.PIPE,
-            # stderr=subprocess.PIPE,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
 
     def is_alive(self):

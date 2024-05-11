@@ -51,8 +51,11 @@ class BGClient:
         self.heart_beat_interval = heart_beat_interval
 
         # run tasks
-        self.start_heartbeat()
-        # self.start_polling()
+        t1 = threading.Thread(target=self.start_heartbeat)
+        t2 = threading.Thread(target=self.start_polling)
+
+        t1.start()
+        t2.start()
 
     def get_runner(self, repo_name: str) -> PytestDiffRunner:
         """
@@ -100,6 +103,7 @@ class BGClient:
 
     def start_polling(self):
         while True:
+            print("Polling server at: ", self.fetch_endpoint)
             fetch_tasks = threading.Thread(target=self.fetch_tasks_thread, daemon=True)
             fetch_tasks.start()
 
