@@ -1,5 +1,0 @@
-# TODO: write comments on each of these fields to explain what they do
-repo_name: "test2"
-url: https://github.com/JohnPeng47/codecov-cli-neuteured
-cov_folders: ["codecov_cli"]
-interp: "C:\\Users\\jpeng\\Documents\\business\\auto_test\\src\\config\\codecov-cli\\codecov-cli-rAUOo5WG\\Scripts\\python.exe"
