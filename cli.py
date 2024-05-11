@@ -1,25 +1,83 @@
 import click
 import yaml
 from pathlib import Path
-import sys
+import json
 
 from src.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from src.repo.repo import create_cloned_folders, delete_cloned_folders
-from src.db.core import Database
-from src.http.base import APIClient
-
-from src.api_cmds import api_baseline, api_coverage
+from src.api_cmds import api_baseline, api_coverage, api_tm_coverage
 
 
 from src.exceptions import CowboyClientError
+from src.config import SAD_KIRBY, REPO_ROOT, TASK_ENDPOINT, HB_PATH, HB_INTERVAL
 
-from src.config import SAD_KIRBY, REPO_ROOT
+from src.db.core import Database
+from src.http import APIClient
 
+import subprocess
+from datetime import datetime, timedelta
+
+
+# note that the BGClient is meant to be longer living than a CLI session
+# which is why we are spinning off a separate process
+
+
+# TODO: probably need to add a shutdown all clients cmd
+class BGRunner:
+    """
+    Interacts with client running in background
+    """
+
+    def __init__(self, heart_beat_fp: Path, heart_beat_interval: int = 5):
+        self.heart_beat_fp = heart_beat_fp
+        self.heart_beat_interval = heart_beat_interval
+
+        if not self.is_alive():
+            print("Cient not alive starting client")
+            self.start_client()
+        else:
+            print("Client is alive!")
+
+    def start_client(self):
+        subprocess.Popen(
+            [
+                "python",
+                "-m",
+                "src.task_client.runtest_client",
+                str(self.heart_beat_fp),
+                str(self.heart_beat_interval),
+            ],
+            # stdout=subprocess.PIPE,
+            # stderr=subprocess.PIPE,
+        )
+
+    def is_alive(self):
+        if not self.read_beat():
+            return False
+
+        # adding one to the interval to account lag
+        if datetime.now() - self.read_beat() < timedelta(
+            seconds=self.heart_beat_interval + 1
+        ):
+            return True
+
+        return False
+
+    def read_beat(self):
+        try:
+            with open(self.heart_beat_fp, "r") as f:
+                hb_time = f.readlines()[-1].strip()
+
+                return datetime.strptime(hb_time, "%Y-%m-%d %H:%M:%S")
+        except FileNotFoundError:
+            return None
+
+
+# yeah global scope, sue me
+# TODO: no but actually lets change this
 db = Database()
 api = APIClient(db)
 rc_repo = RepoConfigRepository(db)
-
-# client = RunTestClient(api, TASK_ENDPOINT)
 
 
 def owner_name_from_url(url: str):
@@ -101,9 +159,7 @@ def repo_init(config_path):
     repo_config.cloned_folders = cloned_folders
 
     try:
-        import json
-
-        api.post("/repo/create", repo_config.serialize())       
+        api.post("/repo/create", repo_config.serialize())
         print(json.dumps(repo_config.serialize(), indent=4))
         click.secho("Successfully created repo: {}".format(repo_name), fg="green")
 
@@ -134,6 +190,12 @@ def cmd_baseline(repo_name):
     api_baseline(repo_name)
 
 
+@cowboy_repo.command("sorted_coverage")
+@click.argument("repo_name")
+def cmd_sorted_coverage(repo_name):
+    api_tm_coverage(repo_name)
+
+
 @cowboy_repo.command("delete")
 @click.argument("repo_name")
 def delete(repo_name):
@@ -150,11 +212,37 @@ def delete(repo_name):
     click.secho(f"Deleted repo {repo_name}", fg="green")
 
 
+@cowboy_repo.command("augment")
+@click.argument("repo_name")
+@click.argument("files", required=False, nargs=-1)
+@click.option("--all", is_flag=True)
+@click.option("--auto", is_flag=True)
+def augment(repo_name, files, all=False):
+    """
+    Augments existing test modules with new test cases
+    """
+    if files and all:
+        click.secho("Cannot specify both files and --all", fg="red")
+        return
+
+    cov_list = api_tm_coverage(repo_name)
+    tm_names = []
+
+    if files:
+        for file in files:
+            tm_names.extend(cov_list.find(file))
+
+    merge_urls = api.post(
+        "/test-gen/augment", {"tm_names": tm_names, "repo_name": repo_name}
+    )
+
+
 def entrypoint():
     """The entry that the CLI is executed from"""
 
     try:
-        cowboy_cli()
+        runner = BGRunner(HB_PATH, HB_INTERVAL)
+        # cowboy_cli()
     except CowboyClientError as e:
         click.secho(
             f"UNHANDLED RUNTIME ERROR: {e}\nPlease file a bug report, {SAD_KIRBY}",

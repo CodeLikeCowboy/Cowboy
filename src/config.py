@@ -7,3 +7,6 @@ SAD_KIRBY = "૮₍˶Ó﹏Ò ⑅₎ა"
 REPO_ROOT = "repos"
 
 USER_CONFIG = ".user"
+
+HB_PATH = ".heartbeat"
+HB_INTERVAL = 2
