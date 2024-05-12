@@ -4,8 +4,8 @@ import requests
 import logging
 import json
 
-from src.config import API_ENDPOINT
-from src.db.core import Database
+from cowboy.config import API_ENDPOINT
+from cowboy.db.core import Database
 
 logger = logging.getLogger(__name__)
 

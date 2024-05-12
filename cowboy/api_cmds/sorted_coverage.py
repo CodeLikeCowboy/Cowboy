@@ -1,5 +1,5 @@
-from src.http import APIClient
-from src.db.core import Database
+from cowboy.http import APIClient
+from cowboy.db.core import Database
 
 from cowboy_lib.coverage import Coverage
 from collections import defaultdict

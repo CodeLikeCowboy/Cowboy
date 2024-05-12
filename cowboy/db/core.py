@@ -2,7 +2,7 @@ import json
 import os
 from typing import Dict
 
-from src.exceptions import CowboyClientError
+from cowboy.exceptions import CowboyClientError
 
 
 class KeyNotFoundError(CowboyClientError):

@@ -3,29 +3,17 @@ from typing import Any, List, Optional
 from pathlib import Path
 
 from pydantic import BaseModel, validator
-from src.db.core import Database
-from src.exceptions import CowboyConfigError
+from cowboy.db.core import Database
+from cowboy.exceptions import CowboyConfigError
 
 
 # TODO:
 # consider adding more arguments from pytest here
-@dataclass
-class PythonConf:
+class PythonConf(BaseModel):
     cov_folders: List[str]
-    test_folder: str
     interp: str
-    pythonpath: str
-
-    # ghetto AF, we should just be using pydantic for this
-    def __post_init__(self):
-        mandatory_keys = ["cov_folders", "interp"]
-        for k in self.__dict__:
-            if k not in mandatory_keys:
-                continue
-
-            v = getattr(self, k)
-            if not v:
-                raise CowboyConfigError(f"{k} must be set in config")
+    test_folder: Optional[str]
+    pythonpath: Optional[str]
 
 
 class RepoConfig(BaseModel):

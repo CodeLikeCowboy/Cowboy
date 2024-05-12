@@ -1,11 +1,11 @@
 import threading
 import time
 
-from src.config import TASK_ENDPOINT
-from src.repo.runner import PytestDiffRunner
-from src.db.core import Database
-from src.repo.models import RepoConfig, RepoConfigRepository
-from src.http import APIClient
+from cowboy.config import TASK_ENDPOINT
+from cowboy.repo.runner import PytestDiffRunner
+from cowboy.db.core import Database
+from cowboy.repo.models import RepoConfig, RepoConfigRepository
+from cowboy.http import APIClient
 
 from cowboy_lib.api.runner.shared import RunTestTaskClient
 
@@ -103,7 +103,7 @@ class BGClient:
 
     def start_polling(self):
         while True:
-            print("Polling server at: ", self.fetch_endpoint)
+            # print("Polling server at: ", self.fetch_endpoint)
             fetch_tasks = threading.Thread(target=self.fetch_tasks_thread, daemon=True)
             fetch_tasks.start()
 

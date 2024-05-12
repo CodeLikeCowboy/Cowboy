@@ -3,16 +3,16 @@ import yaml
 from pathlib import Path
 import json
 
-from src.repo.models import RepoConfig, RepoConfigRepository, PythonConf
-from src.repo.repo import create_cloned_folders, delete_cloned_folders
-from src.api_cmds import api_baseline, api_coverage, api_tm_coverage
+from cowboy.repo.models import RepoConfig, RepoConfigRepository, PythonConf
+from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
+from cowboy.api_cmds import api_baseline, api_coverage, api_tm_coverage
 
 
-from src.exceptions import CowboyClientError
-from src.config import SAD_KIRBY, REPO_ROOT, TASK_ENDPOINT, HB_PATH, HB_INTERVAL
+from cowboy.exceptions import CowboyClientError
+from cowboy.config import SAD_KIRBY, REPO_ROOT, TASK_ENDPOINT, HB_PATH, HB_INTERVAL
 
-from src.db.core import Database
-from src.http import APIClient
+from cowboy.db.core import Database
+from cowboy.http import APIClient
 
 import subprocess
 from datetime import datetime, timedelta
@@ -44,12 +44,12 @@ class BGRunner:
             [
                 "python",
                 "-m",
-                "src.task_client.runtest_client",
+                "cowboy.task_client.runtest_client",
                 str(self.heart_beat_fp),
                 str(self.heart_beat_interval),
             ],
-            stdout=sys.stdout,
-            stderr=sys.stderr,
+            stdout=None,
+            stderr=None,
         )
 
     def is_alive(self):

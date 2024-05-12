@@ -8,11 +8,11 @@ import shutil
 import subprocess
 from git import Repo
 
-from src.db.core import Database
-from src.utils import gen_random_name
+from cowboy.db.core import Database
+from cowboy.utils import gen_random_name
 
-from src.repo.models import RepoConfig
-from src.repo.runner import PytestDiffRunner
+from cowboy.repo.models import RepoConfig
+from cowboy.repo.runner import PytestDiffRunner
 
 ALL_REPO_CONF = "src/config"
 NUM_CLONES = 2

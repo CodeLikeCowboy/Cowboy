@@ -3,13 +3,13 @@ import subprocess
 from typing import List, Tuple, NewType, Dict
 import json
 
-from src.repo.models import PythonConf, RepoConfig
+from cowboy.repo.models import PythonConf, RepoConfig
 from cowboy_lib.repo.repository import PatchFileContext, PatchFile, GitRepo
 from cowboy_lib.coverage import CoverageResult
 
 from cowboy_lib.api.runner.shared import RunTestTaskArgs, FunctionArg
 
-from src.exceptions import CowboyClientError
+from cowboy.exceptions import CowboyClientError
 
 import hashlib
 
