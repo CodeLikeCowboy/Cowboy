@@ -1,7 +1,7 @@
 {
   "num_repos": 3,
   "debug": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjM5NjA4OTIuNDExNjY1LCJlbWFpbCI6ImNvd2JveXRlc3RAZ21haWwuY29tIn0.E_Ae_xO_djiFsxsZ4lfDTV8q3m-Nz3IZAOo5IFYbfTI",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjQ2MDA1OTcuNzkxODE0LCJlbWFpbCI6InJhbmRvZW1haTJsQGdtYWlsLmNvbSJ9.X2tX2cbY_5KCs70uL6h8Kdqg_o3nHbSAT-xxiCZQhA8",
   "repos": {
     "codecov-cli": {
       "repo_name": "codecov-cli",

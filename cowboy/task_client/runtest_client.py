@@ -51,8 +51,8 @@ class BGClient:
         self.heart_beat_interval = heart_beat_interval
 
         # run tasks
-        t1 = threading.Thread(target=self.start_heartbeat)
-        t2 = threading.Thread(target=self.start_polling)
+        t1 = threading.Thread(target=self.start_heartbeat, daemon=True)
+        t2 = threading.Thread(target=self.start_polling, daemon=True)
 
         t1.start()
         t2.start()
@@ -150,3 +150,7 @@ if __name__ == "__main__":
     hb_interval = int(sys.argv[2])
 
     BGClient(api, TASK_ENDPOINT, hb_path, hb_interval)
+
+    # keep main thread alive so we can terminate all threads via sys interrupt
+    while True:
+        time.sleep(1.0)

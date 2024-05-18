@@ -21,27 +21,26 @@ class APIClient:
 
         # user auth token
         self.token = self.db.get("token", "")
+        self.headers = {"Authorization": f"Bearer {self.token}"}
 
     def get(self, uri: str):
         url = urljoin(self.server, uri)
 
-        res = requests.get(url, headers={"Authorization": f"Bearer {self.token}"})
+        res = requests.get(url, headers=self.headers)
 
         return self.parse_response(res)
 
     def post(self, uri: str, data: dict):
         url = urljoin(self.server, uri)
 
-        res = requests.post(
-            url, json=data, headers={"Authorization": f"Bearer {self.token}"}
-        )
+        res = requests.post(url, json=data, headers=self.headers)
 
         return self.parse_response(res)
 
     def delete(self, uri: str):
         url = urljoin(self.server, uri)
 
-        res = requests.delete(url, headers={"Authorization": f"Bearer {self.token}"})
+        res = requests.delete(url, headers=self.headers)
 
         return self.parse_response(res)
 
@@ -49,8 +48,11 @@ class APIClient:
         """
         Parses token from response and handles HTTP exceptions, including retries and timeouts
         """
-        json_res = res.json()
+        task_token = res.headers.get("set-x-task-auth", None)
+        if task_token:
+            self.headers["x-task-auth"] = task_token
 
+        json_res = res.json()
         if isinstance(json_res, dict):
             auth_token = json_res.get("token", None)
             if auth_token:

@@ -17,7 +17,7 @@ class Database:
 
     _instance = None
 
-    def __new__(cls, filepath: str = "src/db/db.json"):
+    def __new__(cls, filepath: str = "cowboy/db/db.json"):
         if cls._instance is None:
             cls._instance = super(Database, cls).__new__(cls)
             cls._instance.filepath = filepath

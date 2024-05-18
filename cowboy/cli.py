@@ -104,18 +104,35 @@ def init():
         click.secho("Config file does not exist.", fg="red")
         return
 
+    # only allow one user to be registered at a time
+    registered = db.get("registered", False)
+    if registered:
+        click.secho(
+            "We are currently only supporting one user per client. If you want to re-register, \
+            first delete the current user via 'cowboy delete_user'",
+            fg="red",
+        )
+        return
+
     _, status = api.post("/register", user_conf)
+
+    db.save_upsert("registered", True)
     if status == 200:
         click.secho("Successfully registered user", fg="green")
 
 
-@cowboy_cli.command("login")
-@click.argument("email")
-@click.argument("password")
-def login(email, password):
-    _, status = api.post("/login", {"email": email, "password": password})
-    if status == 200:
-        click.secho("Successfully logged in", fg="green")
+@cowboy_cli.command("delete_user")
+def delete_user():
+    click.secho("Not yet implemented", fg="red")
+
+
+# @cowboy_cli.command("login")
+# @click.argument("email")
+# @click.argument("password")
+# def login(email, password):
+#     _, status = api.post("/login", {"email": email, "password": password})
+#     if status == 200:
+#         click.secho("Successfully logged in", fg="green")
 
 
 @cowboy_cli.group("repo")
@@ -165,9 +182,9 @@ def repo_init(config_path):
         click.secho("Successfully created repo: {}".format(repo_name), fg="green")
 
         # starting baseline
-        click.secho("Starting baseline", fg="green")
+        # click.secho("Starting baseline", fg="green")
 
-        api_coverage(repo_name)
+        # api_coverage(repo_name)
         api_baseline(repo_name)
 
     # should we differentiate between timeout/requests.exceptions.ConnectionError?
@@ -176,6 +193,21 @@ def repo_init(config_path):
         click.secho(f"Rolling back repo creation", fg="red")
         delete_cloned_folders(Path(REPO_ROOT), repo_name)
         return
+
+
+@cowboy_repo.command("clean")
+@click.argument("repo_name")
+def clean(repo_name):
+    """
+    Deletes all branches that still exists (assumption is that all good
+    branches are merged and deleted)
+    """
+    _, status = api.delete(f"/repo/clean/{repo_name}")
+    if status != 200:
+        click.secho(f"Failed to clean repo {repo_name}", fg="red")
+        return
+
+    click.secho(f"Cleaned repo {repo_name}", fg="green")
 
 
 # TODO: remove these commands?
@@ -215,26 +247,23 @@ def delete(repo_name):
 
 @cowboy_repo.command("augment")
 @click.argument("repo_name")
-@click.argument("files", required=False, nargs=-1)
-@click.option("--all", is_flag=True)
+# @click.argument("files", required=False, nargs=-1)
+# @click.option("--all", is_flag=True)
 @click.option("--auto", is_flag=True)
-def augment(repo_name, files, all=False):
+def augment(repo_name, auto):
     """
     Augments existing test modules with new test cases
     """
-    if files and all:
-        click.secho("Cannot specify both files and --all", fg="red")
-        return
-
-    cov_list = api_tm_coverage(repo_name)
+    mode = None
     tm_names = []
 
-    if files:
-        for file in files:
-            tm_names.extend(cov_list.find(file))
+    if auto:
+        mode = "auto"
+        tm_names = []
 
     merge_urls = api.post(
-        "/test-gen/augment", {"tm_names": tm_names, "repo_name": repo_name}
+        "/test-gen/augment",
+        {"tm_names": tm_names, "repo_name": repo_name, "mode": "auto"},
     )
 
 
@@ -242,8 +271,8 @@ def entrypoint():
     """The entry that the CLI is executed from"""
 
     try:
-        runner = BGRunner(HB_PATH, HB_INTERVAL)
-        # cowboy_cli()
+        # runner = BGRunner(HB_PATH, HB_INTERVAL)
+        cowboy_cli()
     except CowboyClientError as e:
         click.secho(
             f"UNHANDLED RUNTIME ERROR: {e}\nPlease file a bug report, {SAD_KIRBY}",
