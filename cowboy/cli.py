@@ -247,24 +247,31 @@ def delete(repo_name):
 
 @cowboy_repo.command("augment")
 @click.argument("repo_name")
-# @click.argument("files", required=False, nargs=-1)
+@click.argument("mode")
+@click.argument("file", required=False)
 # @click.option("--all", is_flag=True)
-@click.option("--auto", is_flag=True)
-def augment(repo_name, auto):
+def augment(repo_name, mode, file):
     """
     Augments existing test modules with new test cases
     """
-    mode = None
-    tm_names = []
 
-    if auto:
-        mode = "auto"
-        tm_names = []
+    src_file = ""
+    if mode == "file":
+        if not file:
+            click.secho("File not provided", fg="red")
+            return
+        src_file = file
 
-    merge_urls = api.post(
+    print(mode, file)
+    response = api.post(
         "/test-gen/augment",
-        {"tm_names": tm_names, "repo_name": repo_name, "mode": "auto"},
+        {
+            "src_file": src_file,
+            "repo_name": repo_name,
+            "mode": mode,
+        },
     )
+    print(response)
 
 
 def entrypoint():
