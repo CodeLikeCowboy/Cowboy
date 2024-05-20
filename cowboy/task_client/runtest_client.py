@@ -76,7 +76,7 @@ class BGClient:
         """
         Fetches task from server, single thread
         """
-        task_res, status = self.api_client.get("/task/get")
+        task_res, status = self.api_client.poll()
         if task_res:
             for t in task_res:
                 task = RunTestTaskClient(**t, **t["task_args"])

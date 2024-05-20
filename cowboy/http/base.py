@@ -23,6 +23,32 @@ class APIClient:
         self.token = self.db.get("token", "")
         self.headers = {"Authorization": f"Bearer {self.token}"}
 
+        # polling state
+        self.encountered_401s = 0
+
+    def poll(self):
+        """
+        Polls the server for new tasks that comes through. Reason we implement
+        this method differently than others is because we require some pretty
+        janky logic -> basically an alternative auth token
+        """
+        url = urljoin(self.server, "/task/get")
+        res = requests.get(url, headers=self.headers)
+
+        task_token = res.headers.get("set-x-task-auth", None)
+        if task_token:
+            self.headers["x-task-auth"] = task_token
+
+        # next two conds are used to detect when the server restarts
+        if self.headers.get("x-task-auth", None) and res.status_code == 401:
+            self.encountered_401s += 1
+
+        if self.encountered_401s > 3:
+            self.headers["x-task-auth"] = None
+            self.encountered_401s = 0
+
+        return res.json(), res.status_code
+
     def get(self, uri: str):
         url = urljoin(self.server, uri)
 
@@ -48,10 +74,6 @@ class APIClient:
         """
         Parses token from response and handles HTTP exceptions, including retries and timeouts
         """
-        task_token = res.headers.get("set-x-task-auth", None)
-        if task_token:
-            self.headers["x-task-auth"] = task_token
-
         json_res = res.json()
         if isinstance(json_res, dict):
             auth_token = json_res.get("token", None)
