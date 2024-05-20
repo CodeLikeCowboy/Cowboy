@@ -262,8 +262,7 @@ def augment(repo_name, mode, file):
             return
         src_file = file
 
-    print(mode, file)
-    response = api.post(
+    response, status = api.post(
         "/test-gen/augment",
         {
             "src_file": src_file,
@@ -271,7 +270,11 @@ def augment(repo_name, mode, file):
             "mode": mode,
         },
     )
-    print(response)
+
+    if status == 200:
+        results, status = api.get(f"/test-gen/results/{repo_name}")
+        for r in results:
+            print(json.dumps(r, indent=4))
 
 
 def entrypoint():
