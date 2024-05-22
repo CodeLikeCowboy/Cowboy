@@ -4,7 +4,7 @@ import time
 from cowboy.config import TASK_ENDPOINT
 from cowboy.repo.runner import PytestDiffRunner
 from cowboy.db.core import Database
-from cowboy.repo.models import RepoConfig, RepoConfigRepository
+from cowboy.repo.models import RepoConfig
 from cowboy.http import APIClient
 
 from cowboy_lib.api.runner.shared import RunTestTaskClient
@@ -18,7 +18,8 @@ from pathlib import Path
 
 class BGClient:
     """
-    Runs in the background and fetches tasks from server
+    Single Task client that runs as a subprocess in the background
+    and fetches tasks from server
     """
 
     def __init__(

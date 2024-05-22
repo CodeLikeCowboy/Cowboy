@@ -9,15 +9,13 @@ from cowboy.api_cmds import api_baseline, api_coverage, api_tm_coverage
 
 
 from cowboy.exceptions import CowboyClientError
-from cowboy.config import SAD_KIRBY, REPO_ROOT, TASK_ENDPOINT, HB_PATH, HB_INTERVAL
+from cowboy import config
 
 from cowboy.db.core import Database
 from cowboy.http import APIClient
 
 import subprocess
 from datetime import datetime, timedelta
-
-import sys
 
 # note that the BGClient is meant to be longer living than a CLI session
 # which is why we are spinning off a separate process
@@ -172,7 +170,7 @@ def repo_init(config_path):
     )
 
     cloned_folders = create_cloned_folders(
-        repo_config, Path(REPO_ROOT), db.get("num_repos")
+        repo_config, Path(config.REPO_ROOT), config.NUM_CLONES
     )
     repo_config.cloned_folders = cloned_folders
 
@@ -191,7 +189,7 @@ def repo_init(config_path):
     except Exception as e:
         click.secho(f"Repo creation failed on server: {e}", fg="red")
         click.secho(f"Rolling back repo creation", fg="red")
-        delete_cloned_folders(Path(REPO_ROOT), repo_name)
+        delete_cloned_folders(Path(config.REPO_ROOT), repo_name)
         return
 
 
@@ -240,7 +238,7 @@ def delete(repo_name):
         click.secho(f"Failed to delete repo {repo_name}", fg="red")
         return
 
-    delete_cloned_folders(Path(REPO_ROOT), repo_name)
+    delete_cloned_folders(Path(config.REPO_ROOT), repo_name)
 
     click.secho(f"Deleted repo {repo_name}", fg="green")
 
@@ -262,7 +260,7 @@ def augment(repo_name, mode, file):
             return
         src_file = file
 
-    response, status = api.post(
+    response, status = api.long_post(
         "/test-gen/augment",
         {
             "src_file": src_file,
@@ -285,7 +283,7 @@ def entrypoint():
         cowboy_cli()
     except CowboyClientError as e:
         click.secho(
-            f"UNHANDLED RUNTIME ERROR: {e}\nPlease file a bug report, {SAD_KIRBY}",
+            f"UNHANDLED RUNTIME ERROR: {e}\nPlease file a bug report, {config.SAD_KIRBY}",
             bold=True,
             fg="red",
         )

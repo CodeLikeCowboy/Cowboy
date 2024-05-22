@@ -15,6 +15,7 @@ setup(
         "pydantic==1.10.*",
         "gitpython==3.0.6",
         "requests",
+        "platformdirs",
     ],
     entry_points={
         "console_scripts": [

@@ -12,7 +12,7 @@ def api_baseline(repo_name):
         {
             "repo_name": repo_name,
             "test_modules": [
-                # "TestWoodpecker",
+                "TestWoodpecker",
                 # "test_codecov_cli.py",
                 # "TestUploadCollectionResultFile",
                 # "TestRunners",

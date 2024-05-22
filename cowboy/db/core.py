@@ -3,6 +3,7 @@ import os
 from typing import Dict
 
 from cowboy.exceptions import CowboyClientError
+from cowboy.config import DB_PATH
 
 
 class KeyNotFoundError(CowboyClientError):
@@ -17,14 +18,29 @@ class Database:
 
     _instance = None
 
-    def __new__(cls, filepath: str = "cowboy/db/db.json"):
+    def __new__(cls, db_path: str = DB_PATH):
         if cls._instance is None:
             cls._instance = super(Database, cls).__new__(cls)
-            cls._instance.filepath = filepath
+            cls._instance.db_path = db_path
         return cls._instance
 
-    def __init__(self, filepath: str = "src/db/db.json"):
-        pass
+    def __init__(self, db_path: str = DB_PATH):
+        """
+        Initialize empty json at db_path
+        """
+        if not os.path.exists(db_path):
+            with open(db_path, "w") as f:
+                f.write("{}")
+
+        # in case emtpy file or db gets corrupted
+        elif os.path.exists(db_path):
+            try:
+                with open(db_path, "r") as f:
+                    json.load(f)
+            except json.JSONDecodeError:
+                print("DB corrupted, re-initializing ...")
+                with open(db_path, "w") as f:
+                    f.write("{}")
 
     def save_upsert(self, key, value):
         """
@@ -33,7 +49,7 @@ class Database:
         try:
             data = self.get_all()
             data[key] = value
-            with open(self.filepath, "w") as f:
+            with open(self.db_path, "w") as f:
                 json.dump(data, f)
         except IOError as e:
             print(f"Error saving to DB file: {e}")
@@ -48,7 +64,7 @@ class Database:
                 data[dict_key] = {}
 
             data[dict_key][key] = value
-            with open(self.filepath, "w") as f:
+            with open(self.db_path, "w") as f:
                 json.dump(data, f, indent=2)
 
         except IOError as e:
@@ -66,26 +82,26 @@ class Database:
     def delete_dict(self, dict_key, key):
         data = self.get_all()
         del data[dict_key][key]
-        with open(self.filepath, "w") as f:
+        with open(self.db_path, "w") as f:
             json.dump(data, f)
 
     def delete(self, key):
         data = self.get_all()
         if key in data:
             del data[key]
-            with open(self.filepath, "w") as f:
+            with open(self.db_path, "w") as f:
                 json.dump(data, f)
         else:
             raise KeyNotFoundError(key)
 
     def reset(self):
-        with open(self.filepath, "w") as f:
+        with open(self.db_path, "w") as f:
             f.write("{}")
 
     def get_all(self) -> Dict:
         try:
-            if os.path.exists(self.filepath):
-                with open(self.filepath, "r") as f:
+            if os.path.exists(self.db_path):
+                with open(self.db_path, "r") as f:
                     return json.load(f)
             else:
                 return {}

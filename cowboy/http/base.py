@@ -1,13 +1,38 @@
-from urllib.parse import urljoin
-
-import requests
-import logging
-import json
-
 from cowboy.config import API_ENDPOINT
 from cowboy.db.core import Database
 
+from urllib.parse import urljoin
+from threading import Thread
+import requests
+import logging
+import json
+from queue import Queue
+import signal
+import sys
+
 logger = logging.getLogger(__name__)
+
+
+def parse_pydantic_error(error_json):
+    """
+    Parse the Pydantic error JSON object and format it into a readable string message.
+
+    :param error_json: JSON object returned by Pydantic containing error details.
+    :return: Formatted string message.
+    """
+    error_obj = json.loads(error_json)
+    details = error_obj.get("detail", [])
+
+    messages = []
+    for detail in details:
+        loc = detail.get("loc", [])
+        msg = detail.get("msg", "")
+        error_type = detail.get("type", "")
+
+        location = " -> ".join(map(str, loc))
+        messages.append(f"Location: {location}\nMessage: {msg}\nType: {error_type}\n")
+
+    return "\n".join(messages)
 
 
 class HTTPError(Exception):
@@ -49,6 +74,36 @@ class APIClient:
 
         return res.json(), res.status_code
 
+    def long_post(self, uri: str, data: dict):
+        """
+        Need this method to handle long requests, because requests consume
+        all sigints while waiting for the response to return, we have to wrap
+        it in a new thread and use is_alive/join(timeout) to allow the sigint
+        to reach the main thread
+        """
+
+        url = urljoin(self.server, uri)
+        result_queue = Queue()
+
+        def target():
+            try:
+                result = self.post(url, data)
+                result_queue.put(result)
+            except Exception as e:
+                result_queue.put(e)
+
+        t = Thread(target=target, daemon=True)
+        t.start()
+
+        try:
+            while t.is_alive():
+                t.join(timeout=0.1)  # Allow signal handling
+        except KeyboardInterrupt:
+            sys.exit()
+
+        result = result_queue.get()
+        return result
+
     def get(self, uri: str):
         url = urljoin(self.server, uri)
 
@@ -56,7 +111,7 @@ class APIClient:
 
         return self.parse_response(res)
 
-    def post(self, uri: str, data: dict):
+    def post(self, uri: str, data: dict, thread=False):
         url = urljoin(self.server, uri)
 
         res = requests.post(url, json=data, headers=self.headers)
