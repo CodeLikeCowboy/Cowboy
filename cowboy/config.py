@@ -1,7 +1,7 @@
 from platformdirs import user_data_path
 from pathlib import Path
 
-CLIENT_MODE = "debug"
+CLIENT_MODE = "release"
 
 if CLIENT_MODE == "debug":
     COWBOY_DIR = Path(".")

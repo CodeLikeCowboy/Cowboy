@@ -1,20 +1,24 @@
 .PHONY: clean build install-local upload-test upload-prod
 
+# Attempt to find python executable, prefer python3 if available
+PYTHON := $(shell which python3 || which python)
+
 clean:
 	rm -rf dist
 	rm -rf cowboy.egg-info
 
 build: clean
-	python -m build .
+	$(PYTHON) -m build .
 
 	# switch over to the release version of the config
-	sed -i.bak "s/^CLIENT_MODE = \".*\"/CLIENT_MODE = \"release\"/" cowboy/config.py
+	sed "s/^CLIENT_MODE = \".*\"/CLIENT_MODE = \"release\"/" cowboy/config.py
 
 install-local: build
+	rm -rf ~/package/cowboy
 	pip install --target ~/package/cowboy dist/*.whl
 
 upload-test: build
-	python -m twine upload --repository pypitest dist/*
+	$(PYTHON) -m twine upload --repository pypitest dist/*
 
 upload-prod: build
-	python -m twine upload --repository pypi dist/*
+	$(PYTHON) -m twine upload --repository pypi dist/*
