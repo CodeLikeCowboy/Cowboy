@@ -124,6 +124,22 @@ def delete_user():
     click.secho("Not yet implemented", fg="red")
 
 
+@cowboy_cli.command("reset")
+def reset():
+    """Resets user account for Cowboy ."""
+    for repo in db.get("repos"):
+        delete_cloned_folders(Path(config.REPO_ROOT), repo)
+    db.reset()
+
+    click.secho("Successfully reset user data", fg="green")
+
+
+@cowboy_cli.command("dump")
+def dump():
+    """Dumps db.json for debugging."""
+    print(db.get_all())
+
+
 # @cowboy_cli.command("login")
 # @click.argument("email")
 # @click.argument("password")
@@ -170,7 +186,7 @@ def repo_init(config_path):
     )
 
     cloned_folders = create_cloned_folders(
-        repo_config, Path(config.REPO_ROOT), config.NUM_CLONES
+        repo_config, Path(config.REPO_ROOT), db, config.NUM_CLONES
     )
     repo_config.cloned_folders = cloned_folders
 

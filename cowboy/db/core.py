@@ -70,6 +70,22 @@ class Database:
         except IOError as e:
             print(f"Error saving to DB file: {e}")
 
+    def save_list(self, key, value):
+        """
+        Adds a value to a list
+        """
+        try:
+            data = self.get_all()
+            if not data.get(key, None):
+                data[key] = []
+
+            data[key].append(value)
+            with open(self.db_path, "w") as f:
+                json.dump(data, f, indent=2)
+
+        except IOError as e:
+            print(f"Error saving to DB file: {e}")
+
     def get(self, key, default=None):
         return self.get_all().get(key, default)
 

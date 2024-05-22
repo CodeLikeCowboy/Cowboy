@@ -268,6 +268,7 @@ class PytestDiffRunner:
                     text=True,
                 )
                 stdout, stderr = proc.communicate()
+                print(stdout)
                 if stderr:
                     logger.info(f"Stderr: {stderr}")
 

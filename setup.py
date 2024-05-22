@@ -2,7 +2,7 @@ from setuptools import Extension, find_packages, setup
 
 setup(
     name="cowboy-client",
-    version="0.0.11",
+    version="0.0.12",
     packages=find_packages(),
     description="Cowboy Client Interface",
     # long_description=long_description,

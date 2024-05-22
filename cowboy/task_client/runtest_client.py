@@ -6,6 +6,7 @@ from cowboy.repo.runner import PytestDiffRunner
 from cowboy.db.core import Database
 from cowboy.repo.models import RepoConfig
 from cowboy.http import APIClient
+from cowboy.logger import runnerlogger as log
 
 from cowboy_lib.api.runner.shared import RunTestTaskClient
 
@@ -99,12 +100,12 @@ class BGClient:
         with self.lock:
             self.curr_t.remove(task.task_id)
             self.completed += 1
-            print("Outstanding tasks: ", len(self.curr_t))
-            print("Total completed: ", self.completed)
+            log.info("Outstanding tasks: ", len(self.curr_t))
+            log.info("Total completed: ", self.completed)
 
     def start_polling(self):
         while True:
-            # print("Polling server at: ", self.fetch_endpoint)
+            # log.info("Polling server at: ", self.fetch_endpoint)
             fetch_tasks = threading.Thread(target=self.fetch_tasks_thread, daemon=True)
             fetch_tasks.start()
 
@@ -144,7 +145,7 @@ if __name__ == "__main__":
     api = APIClient(db)
 
     if len(sys.argv) < 2:
-        print("Please provide a heartbeat file path and interval")
+        log.info("Please provide a heartbeat file path and interval")
         sys.exit(1)
 
     hb_path = sys.argv[1]

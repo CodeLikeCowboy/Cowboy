@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from collections import defaultdict
 import os
-
-import tempfile
+import click
+import sys
 import shutil
 import subprocess
 from git import Repo
@@ -40,12 +40,20 @@ def del_file(func, path, exc_info):
         raise
 
 
-def create_cloned_folders(repo_conf: RepoConfig, repo_root: Path, num_clones: int):
+def create_cloned_folders(
+    repo_conf: RepoConfig, repo_root: Path, db: Database, num_clones: int
+):
     """
     Clones the repo from the forked_url
     """
     print("Cloning repos ...")
     cloned_folders = []
+    repo = db.get(repo_conf.repo_name)
+    if repo:
+        click.secho("Repo already exists", fg="red")
+        sys.exit()
+
+    db.save_list("repos", repo_conf.repo_name)
     if len(repo_conf.cloned_folders) < num_clones:
         for i in range(num_clones - len(repo_conf.cloned_folders)):
             # TODO: we need to change
