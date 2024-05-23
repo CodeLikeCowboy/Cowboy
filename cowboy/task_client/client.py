@@ -5,7 +5,7 @@ from cowboy.config import TASK_ENDPOINT
 from cowboy.repo.runner import PytestDiffRunner
 from cowboy.db.core import Database
 from cowboy.repo.models import RepoConfig
-from cowboy.http import APIClient
+from cowboy.http import APIClient, InternalServerError
 from cowboy.logger import task_log
 
 from cowboy_lib.api.runner.shared import RunTestTaskClient
@@ -15,6 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from datetime import datetime
 from pathlib import Path
+
+from requests import ConnectionError
 
 
 class BGClient:
@@ -76,21 +78,26 @@ class BGClient:
 
     def start_polling(self):
         while True:
-            # task_log.info("Polling ...")
-            task_res, status = self.api_client.poll()
-            if task_res:
-                for t in task_res:
-                    try:
+            try:
+                # task_log.info("Polling ...")
+                task_res, status = self.api_client.poll()
+                if task_res:
+                    for t in task_res:
                         task = RunTestTaskClient(**t, **t["task_args"])
                         self.curr_t.append(task.task_id)
 
                         task = self.run_task(task)
                         self.complete_task(task)
 
-                    # TODO: handle exceptions from the runner here
-                    except Exception as e:
-                        task_log.error(f"Exception from runner: {e}")
-                        continue
+            # These errors result from how we handle server restarts
+            # and our janky non-db auth method so can just ignore
+            except (InternalServerError, TypeError, ConnectionError):
+                continue
+
+            # TODO: handle exceptions from the runner here
+            except Exception as e:
+                task_log.error(f"Exception from runner: {e} : {type(e).__name__}")
+                continue
 
             time.sleep(1.0)  # Poll every 'interval' second
 

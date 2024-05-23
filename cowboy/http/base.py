@@ -39,6 +39,10 @@ class HTTPError(Exception):
     pass
 
 
+class InternalServerError(Exception):
+    pass
+
+
 class APIClient:
     def __init__(self, db: Database):
         self.server = API_ENDPOINT
@@ -144,5 +148,5 @@ class APIClient:
             raise HTTPError(json.dumps(res.json(), indent=2))
 
         if res.status_code == 500:
-            raise HTTPError("Internal server error")
+            raise InternalServerError()
         return json_res, res.status_code

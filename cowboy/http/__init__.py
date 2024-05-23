@@ -1,1 +1,1 @@
-from .base import APIClient
+from .base import APIClient, InternalServerError
