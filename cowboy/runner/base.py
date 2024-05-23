@@ -5,15 +5,29 @@ from cowboy_lib.coverage import CoverageResult
 from typing import Tuple, List, Any
 
 
+class TestSuiteError(Exception):
+    """
+    Stderr from the subprocess that runs the lang/framework unit test suite
+    """
+
+    def __init__(self, stderr: str):
+        super().__init__(stderr)
+        self.stderr = stderr
+
+    # Not actually used for some reason
+    def __str__(self):
+        return "TestSuit Error: " + self.stderr
+
+
 class Runner(ABC):
     """
     Runs the lang/framework specific unit test
     """
 
     @abstractmethod
-    def run_test(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
+    def run_testsuite(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
         """
-        Run the test and return the coverage result
+        Runs the lang/framework specific unit test suite
         """
         raise NotImplementedError
 

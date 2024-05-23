@@ -4,6 +4,7 @@ from cowboy_lib.api.runner.shared import RunTestTaskArgs, FunctionArg
 from cowboy.repo.models import RepoConfig
 from cowboy.exceptions import CowboyClientError
 from cowboy.logger import task_log
+from .base import TestSuiteError
 
 import os
 import subprocess
@@ -131,7 +132,7 @@ class PytestDiffRunner:
             )
         )
 
-        print("Initialized locked repos: ", self.test_repos)
+        task_log.info("Initialized locked repos: ", self.test_repos)
 
         if len(self.test_repos) == 0:
             raise CowboyClientError("No cloned repos created, perhaps run init again?")
@@ -226,14 +227,14 @@ class PytestDiffRunner:
 
         return " ".join(cmd)
 
-    def run_test(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
+    def run_testsuite(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
         with self.test_repos.acquire_one() as repo_inst:
             cloned_path, git_repo = repo_inst
 
             patch_file = args.patch_file
             if patch_file:
                 patch_file.path = cloned_path / patch_file.path
-                print(f"Using patch file: {patch_file.path}")
+                task_log.info(f"Using patch file: {patch_file.path}")
 
             exclude_tests = args.exclude_tests
             include_tests = args.include_tests
@@ -246,7 +247,7 @@ class PytestDiffRunner:
             include_tests = self._get_include_tests_arg_str(include_tests)
             cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
 
-            print(f"Running with command: {cmd_str}")
+            task_log.info(f"Running with command: {cmd_str}")
 
             with PatchFileContext(git_repo, patch_file):
                 proc = subprocess.Popen(
@@ -259,7 +260,7 @@ class PytestDiffRunner:
                 )
                 stdout, stderr = proc.communicate()
                 if stderr:
-                    task_log.info(f"Stderr: {stderr}")
+                    raise TestSuiteError(stderr)
 
                 # read coverage
                 with open(cloned_path / COVERAGE_FILE, "r") as f:

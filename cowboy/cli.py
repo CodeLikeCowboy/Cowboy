@@ -239,6 +239,8 @@ def entrypoint():
     """The entry that the CLI is executed from"""
 
     try:
+        # TODO: we should make a note that currently only supporting
+        # single repo-at-a-time usage, due to hb and error file conflicts
         runner = Manager(config.HB_PATH, config.HB_INTERVAL)
         cowboy_cli()
     except CowboyClientError as e:

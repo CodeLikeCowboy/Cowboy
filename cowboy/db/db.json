@@ -1,4 +1,10 @@
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjUxMjA5ODguODMyMTk3LCJlbWFpbCI6InJhbmRvZW1hMTIzNDUxMjExMTExMTFAZ21haWwuY29tIn0.04k48LQyRNiggiHkP6NQNScedgWo-MU03CYfatAKIxo",
-  "registered": true
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjUyMzI2MDEuMjE4MDc3LCJlbWFpbCI6InRlc3R1c2VyNkBnbWFpbC5jb20ifQ.98BU_JcTSUi9I5aGfczKZVu3uTWDmfMj8vz83tpAo-M",
+  "registered": true,
+  "user": "testuser6@gmail.com",
+  "repos": [
+    "codecov-cli",
+    "test",
+    "test"
+  ]
 }

@@ -1,14 +1,21 @@
+from cowboy.config import LOG_DIR
+
 import logging
 import os
 from datetime import datetime
+import pytz
 
-from cowboy.config import LOG_DIR
+
+def converter(timestamp):
+    dt = datetime.fromtimestamp(timestamp, tz=pytz.utc)
+    return dt.astimezone(pytz.timezone("US/Eastern")).timetuple()
 
 
 file_formatter = logging.Formatter(
     "%(asctime)s - %(name)s:%(levelname)s: %(filename)s:%(lineno)s - %(message)s",
-    datefmt="%H:%M:%S",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
+file_formatter.converter = converter
 
 
 def get_file_handler(log_dir=LOG_DIR):

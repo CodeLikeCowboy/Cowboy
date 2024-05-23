@@ -21,6 +21,10 @@ class DiffFileCreation(Exception):
     pass
 
 
+class RunnerError(Exception):
+    pass
+
+
 def hash_str(s: str) -> str:
     return hashlib.sha256(s.encode()).hexdigest()
 
@@ -117,8 +121,12 @@ class PytestDiffRunner:
         self.src_folder = Path(repo_conf.source_folder)
         self.test_folder = Path(repo_conf.python_conf.test_folder)
         self.interpreter = Path(repo_conf.python_conf.interp)
-        self.python_path = Path(repo_conf.python_conf.pythonpath)
 
+        deps = self.check_pycov_installed(self.interpreter)
+        if not deps:
+            raise RunnerError(f"pytest-cov is not installed in {self.interpreter}")
+
+        self.python_path = Path(repo_conf.python_conf.pythonpath)
         self.cloned_folders = [Path(p) for p in repo_conf.cloned_folders]
         self.cov_folders = [Path(p) for p in repo_conf.python_conf.cov_folders]
 
@@ -137,6 +145,20 @@ class PytestDiffRunner:
             raise CowboyClientError("No cloned repos created, perhaps run init again?")
 
         self.test_suite = test_suite
+
+    def check_pycov_installed(self, interp):
+        try:
+            result = subprocess.run(
+                [interp, "-m", "pip", "show", "pytest-cov"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                return True
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
+        return False
 
     def verify_clone_dirs(self, cloned_dirs: List[Path]):
         """

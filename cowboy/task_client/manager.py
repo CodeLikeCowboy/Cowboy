@@ -1,12 +1,9 @@
 from cowboy.utils import locate_python_interpreter
-from cowboy.logger import task_log
 
 from pathlib import Path
 import subprocess
 from datetime import datetime, timedelta
 import subprocess
-import select
-import threading
 
 
 class Manager:
@@ -39,17 +36,11 @@ class Manager:
             text=True,
         )
 
-    def read_fd(self, fd):
-        r_list, w_list, ex_list = select.select([fd], [], [], 0.1)
-        if r_list:
-            lines = fd.readlines()
-            if not lines:
-                return []
-            return [l.strip() for l in lines]
-
-        return []
-
     def is_alive(self):
+        """
+        Checks that client is still alive if last beat is within
+        time interval
+        """
         if not self.read_beat():
             return False
 

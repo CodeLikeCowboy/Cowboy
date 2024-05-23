@@ -74,43 +74,45 @@ class BGClient:
 
         return runner
 
-    def fetch_tasks_thread(self):
-        """
-        Fetches task from server, single thread
-        """
-        task_res, status = self.api_client.poll()
-        if task_res:
-            for t in task_res:
-                task = RunTestTaskClient(**t, **t["task_args"])
-                self.curr_t.append(task.task_id)
-                threading.Thread(target=self.run_task_thread, args=(task,)).start()
+    def start_polling(self):
+        while True:
+            # task_log.info("Polling ...")
+            task_res, status = self.api_client.poll()
+            if task_res:
+                for t in task_res:
+                    try:
+                        task = RunTestTaskClient(**t, **t["task_args"])
+                        self.curr_t.append(task.task_id)
 
-    def run_task_thread(self, task: RunTestTaskClient):
+                        task = self.run_task(task)
+                        self.complete_task(task)
+
+                    # TODO: handle exceptions from the runner here
+                    except Exception as e:
+                        task_log.error(f"Exception from runner: {e}")
+                        continue
+
+            time.sleep(1.0)  # Poll every 'interval' second
+
+    def run_task(self, task: RunTestTaskClient):
         """
-        Runs task fetched from server, launched for every new task
+        Runs task and updates its result field when finished
         """
         runner = self.get_runner(task.repo_name)
         cov_res, *_ = runner.run_test(task.task_args)
-        result_task = task
-        result_task.result = cov_res.to_dict()
+        task.result = cov_res.to_dict()
 
-        # Note: need json() vs dict(), cuz json() actually converts nested objects, unlike dict
-        self.api_client.post(f"/task/complete", json.loads(result_task.json()))
+        return task
+
+    def complete_task(self, task: RunTestTaskClient):
+        # Note: json() actually converts nested objects, unlike dict
+        self.api_client.post(f"/task/complete", json.loads(task.json()))
 
         with self.lock:
             self.curr_t.remove(task.task_id)
             self.completed += 1
             task_log.info("Outstanding tasks: ", len(self.curr_t))
             task_log.info("Total completed: ", self.completed)
-
-    def start_polling(self):
-        while True:
-            task_log.info("Polling...")
-            # task_log.info("Polling server at: ", self.fetch_endpoint)
-            fetch_tasks = threading.Thread(target=self.fetch_tasks_thread, daemon=True)
-            fetch_tasks.start()
-
-            time.sleep(1.0)  # Poll every 'interval' second
 
     # TODO: might be better to write to pipe stdout and redir on the caller side,
     # because multiple processes can potentially be started and mess up the files
