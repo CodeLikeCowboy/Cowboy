@@ -99,5 +99,8 @@ def delete_cloned_folders(repo_root: Path, repo_name: str):
     """
     Deletes cloned folders
     """
-    repo_path = repo_root / repo_name
-    shutil.rmtree(repo_path, onerror=del_file)
+    try:
+        repo_path = repo_root / repo_name
+        shutil.rmtree(repo_path, onerror=del_file)
+    except FileNotFoundError:
+        return

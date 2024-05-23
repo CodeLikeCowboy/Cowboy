@@ -63,3 +63,4 @@ repos/*
 .heartbeat
 test_init
 dist/*
+logs/*

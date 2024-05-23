@@ -15,10 +15,11 @@ build: clean
 
 install-local: build
 	rm -rf ~/package/cowboy
-	cp tests/config/user1.yaml ~/package/cowboy/.user
-	cp tests/config/test.yaml ~/package/cowboy/test.yaml
-	
 	pip install --target ~/package/cowboy dist/*.whl
+
+	cp tests/init/user1.yaml ~/package/cowboy/.user
+	cp tests/init/test.yaml ~/package/cowboy/test.yaml
+	
 
 upload-test: build
 	$(PYTHON) -m twine upload --repository pypitest dist/*

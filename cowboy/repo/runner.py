@@ -1,23 +1,17 @@
-import os
-import subprocess
-from typing import List, Tuple, NewType, Dict
-import json
-
-from cowboy.repo.models import PythonConf, RepoConfig
-from cowboy_lib.repo.repository import PatchFileContext, PatchFile, GitRepo
+from cowboy.repo.models import RepoConfig
+from cowboy_lib.repo.repository import PatchFileContext, GitRepo
 from cowboy_lib.coverage import CoverageResult
-
 from cowboy_lib.api.runner.shared import RunTestTaskArgs, FunctionArg
-
 from cowboy.exceptions import CowboyClientError
 
+import os
+import subprocess
+from typing import List, Tuple, NewType
+import json
 import hashlib
-
 from pathlib import Path
-from logging import getLogger
 
-logger = getLogger("test_results")
-longterm_logger = getLogger("longterm")
+from cowboy.logger import task_log
 
 COVERAGE_FILE = "coverage.json"
 TestError = NewType("TestError", str)
@@ -74,15 +68,15 @@ class LockedRepos:
 
     @contextmanager
     def acquire_one(self) -> Tuple[Path, GitRepo]:
-        path, git_repo = self.queue.get()  # This will block if the queue is empty
-        print(f"Repo acquired: {path.name}")
+        path, git_repo = self.queue.get()  # This will block if the queue is
+        task_log.info(f"Repo acquired: {path.name}")
         try:
             yield (path, git_repo)
         finally:
             self.release((path, git_repo))
 
     def release(self, path_n_git: Tuple[Path, GitRepo]):
-        logger.info(f"Releasing repo: {path_n_git[0].name}")
+        task_log.info(f"Releasing repo: {path_n_git[0].name}")
         self.queue.put(path_n_git)  # Return the repo back to the queue
 
     def __len__(self):
@@ -137,7 +131,7 @@ class PytestDiffRunner:
             )
         )
 
-        print("Initialized locked repos: ", self.test_repos)
+        task_log.info("Initialized locked repos: ", self.test_repos)
 
         if len(self.test_repos) == 0:
             raise CowboyClientError("No cloned repos created, perhaps run init again?")
@@ -243,7 +237,7 @@ class PytestDiffRunner:
             patch_file = args.patch_file
             if patch_file:
                 patch_file.path = cloned_path / patch_file.path
-                print(f"Using patch file: {patch_file.path}")
+                task_log.info(f"Using patch file: {patch_file.path}")
 
             exclude_tests = args.exclude_tests
             include_tests = args.include_tests
@@ -256,7 +250,7 @@ class PytestDiffRunner:
             include_tests = self._get_include_tests_arg_str(include_tests)
             cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
 
-            print(f"Running with command: {cmd_str}")
+            task_log.info(f"Running with command: {cmd_str}")
 
             with PatchFileContext(git_repo, patch_file):
                 proc = subprocess.Popen(
@@ -268,9 +262,9 @@ class PytestDiffRunner:
                     text=True,
                 )
                 stdout, stderr = proc.communicate()
-                print(stdout)
+                task_log.info(stdout)
                 if stderr:
-                    logger.info(f"Stderr: {stderr}")
+                    task_log.error(f"Runner Error: {stderr}")
 
                 # read coverage
                 with open(cloned_path / COVERAGE_FILE, "r") as f:

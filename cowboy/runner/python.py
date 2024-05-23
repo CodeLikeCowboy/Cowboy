@@ -1,23 +1,17 @@
+from cowboy_lib.repo.repository import PatchFileContext, GitRepo
+from cowboy_lib.coverage import CoverageResult
+from cowboy_lib.api.runner.shared import RunTestTaskArgs, FunctionArg
+from cowboy.repo.models import RepoConfig
+from cowboy.exceptions import CowboyClientError
+from cowboy.logger import task_log
+
 import os
 import subprocess
 from typing import List, Tuple, NewType, Dict
 import json
-
-from cowboy.repo.models import RepoConfig
-from cowboy_lib.repo.repository import PatchFileContext, GitRepo
-from cowboy_lib.coverage import CoverageResult
-
-from cowboy_lib.api.runner.shared import RunTestTaskArgs, FunctionArg
-
-from cowboy.exceptions import CowboyClientError
-
 import hashlib
-
 from pathlib import Path
-from logging import getLogger
 
-logger = getLogger("test_results")
-longterm_logger = getLogger("longterm")
 
 COVERAGE_FILE = "coverage.json"
 TestError = NewType("TestError", str)
@@ -82,7 +76,7 @@ class LockedRepos:
             self.release((path, git_repo))
 
     def release(self, path_n_git: Tuple[Path, GitRepo]):
-        logger.info(f"Releasing repo: {path_n_git[0].name}")
+        task_log.info(f"Releasing repo: {path_n_git[0].name}")
         self.queue.put(path_n_git)  # Return the repo back to the queue
 
     def __len__(self):
@@ -265,7 +259,7 @@ class PytestDiffRunner:
                 )
                 stdout, stderr = proc.communicate()
                 if stderr:
-                    logger.info(f"Stderr: {stderr}")
+                    task_log.info(f"Stderr: {stderr}")
 
                 # read coverage
                 with open(cloned_path / COVERAGE_FILE, "r") as f:

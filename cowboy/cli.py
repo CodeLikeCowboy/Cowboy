@@ -6,71 +6,12 @@ import json
 from cowboy.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
 from cowboy.api_cmds import api_baseline, api_coverage, api_tm_coverage
-
-
 from cowboy.exceptions import CowboyClientError
 from cowboy import config
+from cowboy.task_client import Manager
 
 from cowboy.db.core import Database
 from cowboy.http import APIClient
-
-import subprocess
-from datetime import datetime, timedelta
-
-# note that the BGClient is meant to be longer living than a CLI session
-# which is why we are spinning off a separate process
-
-
-# TODO: probably need to add a shutdown all clients cmd
-class BGRunner:
-    """
-    Interacts with client running in background
-    """
-
-    def __init__(self, heart_beat_fp: Path, heart_beat_interval: int = 5):
-        self.heart_beat_fp = heart_beat_fp
-        self.heart_beat_interval = heart_beat_interval
-
-        if not self.is_alive():
-            print("Cient not alive starting client")
-            self.start_client()
-        else:
-            print("Client is alive!")
-
-    def start_client(self):
-        subprocess.Popen(
-            [
-                "python",
-                "-m",
-                "cowboy.task_client.runtest_client",
-                str(self.heart_beat_fp),
-                str(self.heart_beat_interval),
-            ],
-            stdout=None,
-            stderr=None,
-        )
-
-    def is_alive(self):
-        if not self.read_beat():
-            return False
-
-        # adding one to the interval to account lag
-        if datetime.now() - self.read_beat() < timedelta(
-            seconds=self.heart_beat_interval + 1
-        ):
-            return True
-
-        return False
-
-    def read_beat(self):
-        try:
-            with open(self.heart_beat_fp, "r") as f:
-                hb_time = f.readlines()[-1].strip()
-
-                return datetime.strptime(hb_time, "%Y-%m-%d %H:%M:%S")
-        except FileNotFoundError:
-            return None
-
 
 # yeah global scope, sue me
 # TODO: no but actually lets change this
@@ -99,36 +40,40 @@ def init():
         with open(".user", "r") as f:
             user_conf = yaml.safe_load(f)
     except FileNotFoundError:
-        click.secho("Config file does not exist.", fg="red")
+        click.secho('User definition file ".user" does not exist', fg="red")
         return
 
     # only allow one user to be registered at a time
     registered = db.get("registered", False)
     if registered:
         click.secho(
-            "We are currently only supporting one user per client. If you want to re-register, \
-            first delete the current user via 'cowboy delete_user'",
+            "We are currently only supporting one user per client. If you want to re-register, "
+            "first delete the current user via 'cowboy delete_user'",
             fg="red",
         )
         return
 
-    _, status = api.post("/register", user_conf)
+    _, status = api.post("/user/register", user_conf)
 
     db.save_upsert("registered", True)
+    db.save_upsert("user", user_conf["email"])
+
     if status == 200:
-        click.secho("Successfully registered user", fg="green")
-
-
-@cowboy_cli.command("delete_user")
-def delete_user():
-    click.secho("Not yet implemented", fg="red")
+        click.secho(
+            "Successfully registered user. You can delete .user in case you dont want "
+            "passwords/sensitive tokens to be exposed locally",
+            fg="green",
+        )
 
 
 @cowboy_cli.command("reset")
 def reset():
     """Resets user account for Cowboy ."""
-    for repo in db.get("repos"):
+    for repo in db.get("repos", []):
         delete_cloned_folders(Path(config.REPO_ROOT), repo)
+
+    _, status = api.get(f"/user/delete")
+
     db.reset()
 
     click.secho("Successfully reset user data", fg="green")
@@ -255,7 +200,6 @@ def delete(repo_name):
         return
 
     delete_cloned_folders(Path(config.REPO_ROOT), repo_name)
-
     click.secho(f"Deleted repo {repo_name}", fg="green")
 
 
@@ -295,7 +239,7 @@ def entrypoint():
     """The entry that the CLI is executed from"""
 
     try:
-        # runner = BGRunner(HB_PATH, HB_INTERVAL)
+        runner = Manager(config.HB_PATH, config.HB_INTERVAL)
         cowboy_cli()
     except CowboyClientError as e:
         click.secho(
@@ -304,6 +248,7 @@ def entrypoint():
             fg="red",
         )
     except Exception as e:
+        raise e
         error_msg = f"ERROR: {e}"
         if db.get("debug", False):
             import traceback
