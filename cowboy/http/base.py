@@ -1,5 +1,6 @@
 from cowboy.config import API_ENDPOINT
 from cowboy.db.core import Database
+from cowboy.exceptions import CowboyClientError
 
 from urllib.parse import urljoin
 from threading import Thread
@@ -51,6 +52,7 @@ class APIClient:
         # user auth token
         self.token = self.db.get("token", "")
         self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.auth_token = None
 
         # polling state
         self.encountered_401s = 0
@@ -61,19 +63,23 @@ class APIClient:
         this method differently than others is because we require some pretty
         janky logic -> basically an alternative auth token
         """
+        headers = self.headers.copy()
+        if self.auth_token:
+            headers.update({"x-task-auth": self.auth_token})
+
         url = urljoin(self.server, "/task/get")
-        res = requests.get(url, headers=self.headers)
+        res = requests.get(url, headers=headers)
 
         task_token = res.headers.get("set-x-task-auth", None)
         if task_token:
-            self.headers["x-task-auth"] = task_token
+            self.auth_token = task_token
 
         # next two conds are used to detect when the server restarts
-        if self.headers.get("x-task-auth", None) and res.status_code == 401:
+        if self.auth_token and res.status_code == 401:
             self.encountered_401s += 1
 
         if self.encountered_401s > 3:
-            self.headers["x-task-auth"] = None
+            self.auth_token = None
             self.encountered_401s = 0
 
         return res.json(), res.status_code
@@ -92,9 +98,9 @@ class APIClient:
         def target():
             try:
                 result = self.post(url, data)
-                result_queue.put(result)
+                result_queue.put((None, result))
             except Exception as e:
-                result_queue.put(e)
+                result_queue.put((e, None))
 
         t = Thread(target=target, daemon=True)
         t.start()
@@ -105,10 +111,13 @@ class APIClient:
         except KeyboardInterrupt:
             sys.exit()
 
-        result = result_queue.get()
+        exception, result = result_queue.get()
+        if exception:
+            raise exception
         return result
 
     def get(self, uri: str):
+        print(f"GET: {uri} :: {self.headers}")
         url = urljoin(self.server, uri)
 
         res = requests.get(url, headers=self.headers)
@@ -133,7 +142,9 @@ class APIClient:
         """
         Parses token from response and handles HTTP exceptions, including retries and timeouts
         """
+        print("Parsing response..")
         json_res = res.json()
+        print(res.status_code)
         if isinstance(json_res, dict):
             auth_token = json_res.get("token", None)
             if auth_token:
@@ -143,10 +154,16 @@ class APIClient:
         if res.status_code == 401:
             raise HTTPError("Unauthorized, are you registered or logged in?")
 
-        if res.status_code == 422:
+        elif res.status_code == 422:
             message = res.json()["detail"][0]["msg"]
             raise HTTPError(json.dumps(res.json(), indent=2))
 
-        if res.status_code == 500:
+        elif res.status_code == 500:
             raise InternalServerError()
+
+        elif res.status_code == 400:
+            print("gbegoneoig")
+            message = res.json()["detail"]
+            raise CowboyClientError(message)
+
         return json_res, res.status_code

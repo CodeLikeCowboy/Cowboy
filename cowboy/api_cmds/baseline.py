@@ -7,7 +7,7 @@ api = APIClient(db)
 
 
 def api_baseline(repo_name):
-    api.post(
+    api.long_post(
         f"/tm/baseline",
         {
             "repo_name": repo_name,

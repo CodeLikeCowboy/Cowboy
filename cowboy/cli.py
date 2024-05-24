@@ -245,7 +245,7 @@ def entrypoint():
         cowboy_cli()
     except CowboyClientError as e:
         click.secho(
-            f"UNHANDLED RUNTIME ERROR: {e}\nPlease file a bug report, {config.SAD_KIRBY}",
+            f"CowboyClientError: {e}\n {config.SAD_KIRBY}",
             bold=True,
             fg="red",
         )

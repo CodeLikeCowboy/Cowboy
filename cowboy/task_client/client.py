@@ -5,10 +5,10 @@ from cowboy.config import TASK_ENDPOINT
 from cowboy.repo.runner import PytestDiffRunner
 from cowboy.db.core import Database
 from cowboy.repo.models import RepoConfig
-from cowboy.http import APIClient, InternalServerError
+from cowboy.http import APIClient
 from cowboy.logger import task_log
 
-from cowboy_lib.api.runner.shared import RunTestTaskClient
+from cowboy_lib.api.runner.shared import RunTestTaskClient, TaskResult
 
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -82,6 +82,7 @@ class BGClient:
                 # task_log.info("Polling ...")
                 task_res, status = self.api_client.poll()
                 if task_res:
+                    print(task_res)
                     for t in task_res:
                         task = RunTestTaskClient(**t, **t["task_args"])
                         self.curr_t.append(task.task_id)
@@ -91,11 +92,16 @@ class BGClient:
 
             # These errors result from how we handle server restarts
             # and our janky non-db auth method so can just ignore
-            except (InternalServerError, TypeError, ConnectionError):
+            # except (InternalServerError, TypeError, ConnectionError):
+            # TODO: catch server restart exceptions
+            except ConnectionError:
                 continue
 
             # TODO: handle exceptions from the runner here
             except Exception as e:
+                task.result = TaskResult(exception=str(e))
+                self.complete_task(task)
+
                 task_log.error(f"Exception from runner: {e} : {type(e).__name__}")
                 continue
 
@@ -107,7 +113,7 @@ class BGClient:
         """
         runner = self.get_runner(task.repo_name)
         cov_res, *_ = runner.run_test(task.task_args)
-        task.result = cov_res.to_dict()
+        task.result = TaskResult(**cov_res.to_dict())
 
         return task
 
@@ -118,8 +124,8 @@ class BGClient:
         with self.lock:
             self.curr_t.remove(task.task_id)
             self.completed += 1
-            task_log.info("Outstanding tasks: ", len(self.curr_t))
-            task_log.info("Total completed: ", self.completed)
+            task_log.info(f"Outstanding tasks: {len(self.curr_t)}")
+            task_log.info(f"Total completed: {self.completed}")
 
     # TODO: might be better to write to pipe stdout and redir on the caller side,
     # because multiple processes can potentially be started and mess up the files
@@ -148,18 +154,35 @@ class BGClient:
 
 if __name__ == "__main__":
     import sys
+    import logging
+    from cowboy.logger import file_formatter
+
+    def get_console_handler():
+        """
+        Returns a console handler for logging.
+        """
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(file_formatter)
+        return console_handler
 
     # dont actually use the db here, its needed as a dep for APIClient (rethink this)
     # but we dont want to mess with local db state from this code
     db = Database()
     api = APIClient(db)
 
-    if len(sys.argv) < 2:
-        task_log.info("Please provide a heartbeat file path and interval")
+    if len(sys.argv) < 3:
+        task_log.info(
+            "Usage: python client.py <heartbeat_file> <heartbeat_interval> <console>"
+        )
         sys.exit(1)
 
     hb_path = sys.argv[1]
     hb_interval = int(sys.argv[2])
+    console = bool(sys.argv[3])
+
+    if console:
+        print("Logger initialized")
+        task_log.addHandler(get_console_handler())
 
     BGClient(api, TASK_ENDPOINT, hb_path, hb_interval)
 

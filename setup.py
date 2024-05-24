@@ -16,6 +16,7 @@ setup(
         "gitpython==3.0.6",
         "requests",
         "platformdirs",
+        "pytz",
     ],
     entry_points={
         "console_scripts": [

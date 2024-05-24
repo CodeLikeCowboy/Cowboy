@@ -5,6 +5,7 @@
   "repos": [
     "codecov-cli",
     "test",
-    "test"
+    "test",
+    "test2"
   ]
 }
