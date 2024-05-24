@@ -79,10 +79,8 @@ class BGClient:
     def start_polling(self):
         while True:
             try:
-                # task_log.info("Polling ...")
                 task_res, status = self.api_client.poll()
                 if task_res:
-                    print(task_res)
                     for t in task_res:
                         task = RunTestTaskClient(**t, **t["task_args"])
                         self.curr_t.append(task.task_id)
@@ -92,12 +90,10 @@ class BGClient:
 
             # These errors result from how we handle server restarts
             # and our janky non-db auth method so can just ignore
-            # except (InternalServerError, TypeError, ConnectionError):
-            # TODO: catch server restart exceptions
-            except ConnectionError:
+            except (TypeError, ConnectionError):
                 continue
 
-            # TODO: handle exceptions from the runner here
+            # TODO: should change this to RunnerException?
             except Exception as e:
                 task.result = TaskResult(exception=str(e))
                 self.complete_task(task)
@@ -127,8 +123,6 @@ class BGClient:
             task_log.info(f"Outstanding tasks: {len(self.curr_t)}")
             task_log.info(f"Total completed: {self.completed}")
 
-    # TODO: might be better to write to pipe stdout and redir on the caller side,
-    # because multiple processes can potentially be started and mess up the files
     def heart_beat(self):
         new_file_mode = False
         # create file
@@ -181,7 +175,6 @@ if __name__ == "__main__":
     console = bool(sys.argv[3])
 
     if console:
-        print("Logger initialized")
         task_log.addHandler(get_console_handler())
 
     BGClient(api, TASK_ENDPOINT, hb_path, hb_interval)

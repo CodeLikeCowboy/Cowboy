@@ -4,11 +4,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, validator
 from cowboy.db.core import Database
-from cowboy.exceptions import CowboyConfigError
 
 
-# TODO:
-# consider adding more arguments from pytest here
 class PythonConf(BaseModel):
     cov_folders: List[str]
     interp: str

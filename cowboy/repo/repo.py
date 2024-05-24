@@ -18,7 +18,6 @@ ALL_REPO_CONF = "src/config"
 NUM_CLONES = 2
 
 
-# TODO: have to check if windows or linux
 def del_file(func, path, exc_info):
     """
     Error handler for ``shutil.rmtree``.
@@ -56,7 +55,6 @@ def create_cloned_folders(
     db.save_list("repos", repo_conf.repo_name)
     if len(repo_conf.cloned_folders) < num_clones:
         for i in range(num_clones - len(repo_conf.cloned_folders)):
-            # TODO: we need to change
             cloned_path = clone_repo(repo_root, repo_conf.url, repo_conf.repo_name)
             setuppy_init(repo_conf.repo_name, cloned_path, repo_conf.python_conf.interp)
 

@@ -14,7 +14,6 @@ from cowboy.db.core import Database
 from cowboy.http import APIClient
 
 # yeah global scope, sue me
-# TODO: no but actually lets change this
 db = Database()
 api = APIClient(db)
 rc_repo = RepoConfigRepository(db)
@@ -31,8 +30,7 @@ def cowboy_cli():
     pass
 
 
-# TODO: make this into a dialogue and store the results in DB.json, inside
-# of the repo root folder
+# TODO: should we make initialization a user dialogue instead?
 @cowboy_cli.command("init")
 def init():
     """Initializes user account for Cowboy."""
@@ -100,7 +98,6 @@ def cowboy_repo():
     pass
 
 
-# TODO: handle naming conflicts ...
 @cowboy_repo.command("create")
 @click.argument("config_path")
 def repo_init(config_path):
@@ -169,7 +166,6 @@ def clean(repo_name):
     click.secho(f"Cleaned repo {repo_name}", fg="green")
 
 
-# TODO: remove these commands?
 @cowboy_repo.command("coverage")
 @click.argument("repo_name")
 def cmd_coverage(repo_name):
@@ -240,7 +236,7 @@ def entrypoint():
 
     try:
         # TODO: we should make a note that currently only supporting
-        # single repo-at-a-time usage, due to hb and error file conflicts
+        # running a single repo-at-a-time usage, due to hb and error file conflicts
         runner = Manager(config.HB_PATH, config.HB_INTERVAL)
         cowboy_cli()
     except CowboyClientError as e:
