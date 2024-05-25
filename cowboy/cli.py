@@ -5,7 +5,7 @@ import json
 
 from cowboy.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
-from cowboy.api_cmds import api_baseline, api_coverage, api_tm_coverage
+from cowboy.api_cmds import api_baseline, api_coverage, api_tm_coverage, api_augment
 from cowboy.exceptions import CowboyClientError
 from cowboy import config
 from cowboy.task_client import Manager
@@ -203,27 +203,13 @@ def delete(repo_name):
 @click.argument("repo_name")
 @click.argument("mode")
 @click.argument("file", required=False)
-# @click.option("--all", is_flag=True)
-def augment(repo_name, mode, file):
+@click.argument("tms", required=False)
+def augment(repo_name, mode, file, tms):
     """
     Augments existing test modules with new test cases
     """
 
-    src_file = ""
-    if mode == "file":
-        if not file:
-            click.secho("File not provided", fg="red")
-            return
-        src_file = file
-
-    response, status = api.long_post(
-        "/test-gen/augment",
-        {
-            "src_file": src_file,
-            "repo_name": repo_name,
-            "mode": mode,
-        },
-    )
+    res, status = api_augment(repo_name, mode, file, tms)
 
     if status == 200:
         results, status = api.get(f"/test-gen/results/{repo_name}")
