@@ -63,6 +63,7 @@ def create_cloned_folders(
     return cloned_folders
 
 
+# TODO: here there may be errors
 def setuppy_init(repo_name: str, cloned_path: Path, interp: str):
     """
     Initialize setup.py file for each interpreter
@@ -78,6 +79,9 @@ def setuppy_init(repo_name: str, cloned_path: Path, interp: str):
     )
 
     stdout, stderr = proc.communicate()
+    # if stderr:
+    #     print("Error while setup.py install")
+    #     print(stderr)
 
 
 def clone_repo(repo_root: Path, repo_url: str, repo_name: str) -> Path:

@@ -2,7 +2,7 @@ import threading
 import time
 
 from cowboy.config import TASK_ENDPOINT
-from cowboy.repo.runner import PytestDiffRunner
+from cowboy.runner.python import PytestDiffRunner
 from cowboy.db.core import Database
 from cowboy.repo.models import RepoConfig
 from cowboy.http import APIClient
@@ -69,7 +69,7 @@ class BGClient:
         if runner:
             return runner
 
-        repo_conf, status = self.api_client.get(f"/repo/get/{repo_name}")
+        repo_conf = self.api_client.get(f"/repo/get/{repo_name}")
         repo_conf = RepoConfig(**repo_conf)
         runner = PytestDiffRunner(repo_conf)
         self.runners[repo_name] = runner
@@ -79,14 +79,15 @@ class BGClient:
     def start_polling(self):
         while True:
             try:
-                task_res, status = self.api_client.poll()
+                task_res = self.api_client.poll()
                 if task_res:
+                    task_log.info(f"Receieved {len(task_res)} tasks from server")
                     for t in task_res:
                         task = RunTestTaskClient(**t, **t["task_args"])
                         self.curr_t.append(task.task_id)
 
-                        task = self.run_task(task)
-                        self.complete_task(task)
+                        # self.run_task(task)
+                        threading.Thread(target=self.run_task, args=(task,)).start()
 
             # These errors result from how we handle server restarts
             # and our janky non-db auth method so can just ignore
@@ -107,21 +108,22 @@ class BGClient:
         """
         Runs task and updates its result field when finished
         """
+        task_log.info(f"Starting task: {task.task_id}")
         runner = self.get_runner(task.repo_name)
-        cov_res, *_ = runner.run_test(task.task_args)
+        cov_res, *_ = runner.run_testsuite(task.task_args)
         task.result = TaskResult(**cov_res.to_dict())
 
-        return task
+        self.complete_task(task)
 
     def complete_task(self, task: RunTestTaskClient):
         # Note: json() actually converts nested objects, unlike dict
         self.api_client.post(f"/task/complete", json.loads(task.json()))
 
-        with self.lock:
-            self.curr_t.remove(task.task_id)
-            self.completed += 1
-            task_log.info(f"Outstanding tasks: {len(self.curr_t)}")
-            task_log.info(f"Total completed: {self.completed}")
+        # with self.lock:
+        #     self.curr_t.remove(task.task_id)
+        #     self.completed += 1
+        #     task_log.info(f"Outstanding tasks: {len(self.curr_t)}")
+        #     task_log.info(f"Total completed: {self.completed}")
 
     def heart_beat(self):
         new_file_mode = False

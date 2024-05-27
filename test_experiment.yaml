@@ -1,0 +1,6 @@
+# TODO: write comments on each of these fields to explain what they do
+repo_name: "test_exp4"
+url: https://github.com/codecov/codecov-cli.git
+cov_folders: ["codecov_cli"]
+interp: python
+is_experiment: true

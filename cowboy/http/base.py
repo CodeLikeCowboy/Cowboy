@@ -82,7 +82,7 @@ class APIClient:
             self.auth_token = None
             self.encountered_401s = 0
 
-        return res.json(), res.status_code
+        return res.json()
 
     def long_post(self, uri: str, data: dict):
         """
@@ -114,6 +114,7 @@ class APIClient:
         exception, result = result_queue.get()
         if exception:
             raise exception
+
         return result
 
     def get(self, uri: str):
@@ -142,9 +143,7 @@ class APIClient:
         """
         Parses token from response and handles HTTP exceptions, including retries and timeouts
         """
-        print("Parsing response..")
         json_res = res.json()
-        print(res.status_code)
         if isinstance(json_res, dict):
             auth_token = json_res.get("token", None)
             if auth_token:
@@ -162,8 +161,7 @@ class APIClient:
             raise InternalServerError()
 
         elif res.status_code == 400:
-            print("gbegoneoig")
             message = res.json()["detail"]
             raise CowboyClientError(message)
 
-        return json_res, res.status_code
+        return json_res

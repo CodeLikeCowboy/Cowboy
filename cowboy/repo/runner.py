@@ -122,7 +122,7 @@ class PytestDiffRunner:
         self.test_folder = Path(repo_conf.python_conf.test_folder)
         self.interpreter = Path(repo_conf.python_conf.interp)
 
-        deps = self.check_pycov_installed(self.interpreter)
+        deps = self.check_deps_installed(self.interpreter)
         if not deps:
             raise RunnerError(f"pytest-cov is not installed in {self.interpreter}")
 
@@ -146,19 +146,26 @@ class PytestDiffRunner:
 
         self.test_suite = test_suite
 
-    def check_pycov_installed(self, interp):
+    def check_deps_installed(self, interp):
+        """
+        Check if test depdencies are installed in the interpreter
+        """
+        deps = ["pytest-cov"]
         try:
-            result = subprocess.run(
-                [interp, "-m", "pip", "show", "pytest-cov"],
-                capture_output=True,
-                text=True,
-            )
-            if result.returncode == 0:
-                return True
+            for dep in deps:
+                print(f"Checking for {dep} in {interp}")
+                result = subprocess.run(
+                    [interp, "-m", "pip", "show", dep],
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode != 0:
+                    return False
+
         except (subprocess.CalledProcessError, FileNotFoundError):
             return False
 
-        return False
+        return True
 
     def verify_clone_dirs(self, cloned_dirs: List[Path]):
         """

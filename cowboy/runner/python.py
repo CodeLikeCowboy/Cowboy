@@ -22,6 +22,10 @@ class DiffFileCreation(Exception):
     pass
 
 
+class RunnerError(Exception):
+    pass
+
+
 def hash_str(s: str) -> str:
     return hashlib.sha256(s.encode()).hexdigest()
 
@@ -77,7 +81,7 @@ class LockedRepos:
             self.release((path, git_repo))
 
     def release(self, path_n_git: Tuple[Path, GitRepo]):
-        task_log.info(f"Releasing repo: {path_n_git[0].name}")
+        print(f"Releasing repo: {path_n_git[0].name}")
         self.queue.put(path_n_git)  # Return the repo back to the queue
 
     def __len__(self):
@@ -120,6 +124,10 @@ class PytestDiffRunner:
         self.interpreter = Path(repo_conf.python_conf.interp)
         self.python_path = Path(repo_conf.python_conf.pythonpath)
 
+        deps = self.check_deps_installed(self.interpreter)
+        if not deps:
+            raise RunnerError(f"pytest-cov is not installed in {self.interpreter}")
+
         self.cloned_folders = [Path(p) for p in repo_conf.cloned_folders]
         self.cov_folders = [Path(p) for p in repo_conf.python_conf.cov_folders]
 
@@ -132,12 +140,33 @@ class PytestDiffRunner:
             )
         )
 
-        task_log.info("Initialized locked repos: ", self.test_repos)
+        print(f"Initialized locked repos: {self.test_repos}")
 
         if len(self.test_repos) == 0:
             raise CowboyClientError("No cloned repos created, perhaps run init again?")
 
         self.test_suite = test_suite
+
+    def check_deps_installed(self, interp):
+        """
+        Check if test depdencies are installed in the interpreter
+        """
+        deps = ["pytest-cov"]
+        try:
+            for dep in deps:
+                print(f"Checking for {dep} in {interp}")
+                result = subprocess.run(
+                    [interp, "-m", "pip", "show", dep],
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode != 0:
+                    return False
+
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            return False
+
+        return True
 
     def verify_clone_dirs(self, cloned_dirs: List[Path]):
         """
@@ -234,7 +263,7 @@ class PytestDiffRunner:
             patch_file = args.patch_file
             if patch_file:
                 patch_file.path = cloned_path / patch_file.path
-                task_log.info(f"Using patch file: {patch_file.path}")
+                print(f"Using patch file: {patch_file.path}")
 
             exclude_tests = args.exclude_tests
             include_tests = args.include_tests
@@ -247,7 +276,7 @@ class PytestDiffRunner:
             include_tests = self._get_include_tests_arg_str(include_tests)
             cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
 
-            task_log.info(f"Running with command: {cmd_str}")
+            print(f"Running with command: {cmd_str}")
 
             with PatchFileContext(git_repo, patch_file):
                 proc = subprocess.Popen(

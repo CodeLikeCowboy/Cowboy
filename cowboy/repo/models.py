@@ -25,6 +25,7 @@ class RepoConfig(BaseModel):
     )
     # pytest specific confs (although they could be generally applicable)
     python_conf: "PythonConf"
+    is_experiment: Optional[bool] = False
 
     @validator("url")
     def validate_url(cls, v):
@@ -51,6 +52,7 @@ class RepoConfig(BaseModel):
             "cloned_folders": self.cloned_folders,
             "source_folder": self.source_folder,
             "python_conf": self.python_conf.__dict__,
+            "is_experiment": self.is_experiment,
         }
 
 

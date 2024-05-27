@@ -11,9 +11,12 @@ class Manager:
     Interacts with client running in background
     """
 
-    def __init__(self, heart_beat_fp: Path, heart_beat_interval: int = 5):
+    def __init__(
+        self, heart_beat_fp: Path, heart_beat_interval: int = 5, console: bool = False
+    ):
         self.heart_beat_fp = heart_beat_fp
         self.heart_beat_interval = heart_beat_interval
+        self.console = console
         self.interp = locate_python_interpreter()
 
         if not self.is_alive():
@@ -30,6 +33,7 @@ class Manager:
                 "cowboy.task_client.client",
                 str(self.heart_beat_fp),
                 str(self.heart_beat_interval),
+                "True",
             ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

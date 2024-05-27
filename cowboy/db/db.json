@@ -6,6 +6,19 @@
     "codecov-cli",
     "test",
     "test",
-    "test2"
+    "test2",
+    "test_exp",
+    "test_exp",
+    "test_exp",
+    "test_exp",
+    "test_fix",
+    "test_fix",
+    "test_fix",
+    "test_fix",
+    "test_exp2",
+    "test_exp3",
+    "test_exp4",
+    "test_fix",
+    "test_fix"
   ]
 }

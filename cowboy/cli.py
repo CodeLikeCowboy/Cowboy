@@ -8,7 +8,6 @@ from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
 from cowboy.api_cmds import api_baseline, api_coverage, api_tm_coverage, api_augment
 from cowboy.exceptions import CowboyClientError
 from cowboy import config
-from cowboy.task_client import Manager
 
 from cowboy.db.core import Database
 from cowboy.http import APIClient
@@ -30,8 +29,20 @@ def cowboy_cli():
     pass
 
 
+@cowboy_cli.command("dump")
+def dump():
+    """Dumps db.json for debugging."""
+    print(db.get_all())
+
+
+@cowboy_cli.group("user")
+def cowboy_user():
+    """Container for all user commands."""
+    pass
+
+
 # TODO: should we make initialization a user dialogue instead?
-@cowboy_cli.command("init")
+@cowboy_user.command("init")
 def init():
     """Initializes user account for Cowboy."""
     try:
@@ -51,36 +62,36 @@ def init():
         )
         return
 
-    _, status = api.post("/user/register", user_conf)
+    api.post("/user/register", user_conf)
 
     db.save_upsert("registered", True)
     db.save_upsert("user", user_conf["email"])
-
-    if status == 200:
-        click.secho(
-            "Successfully registered user. You can delete .user in case you dont want "
-            "passwords/sensitive tokens to be exposed locally",
-            fg="green",
-        )
+    click.secho(
+        "Successfully registered user. You can delete .user in case you dont want "
+        "passwords/sensitive tokens to be exposed locally",
+        fg="green",
+    )
 
 
-@cowboy_cli.command("reset")
+@cowboy_user.command("update_oai_key")
+@click.argument("openai_api_key")
+def update_oai(openai_api_key):
+    """Updates the openapi key for the user."""
+
+    api.post("/user/update/openai-key", {"openai_api_key": openai_api_key})
+    click.secho("Successfully updated openapi key", fg="green")
+
+
+@cowboy_user.command("reset")
 def reset():
     """Resets user account for Cowboy ."""
     for repo in db.get("repos", []):
         delete_cloned_folders(Path(config.REPO_ROOT), repo)
 
-    _, status = api.get(f"/user/delete")
-
+    api.get(f"/user/delete")
     db.reset()
 
     click.secho("Successfully reset user data", fg="green")
-
-
-@cowboy_cli.command("dump")
-def dump():
-    """Dumps db.json for debugging."""
-    print(db.get_all())
 
 
 # @cowboy_cli.command("login")
@@ -125,6 +136,7 @@ def repo_init(config_path):
         cloned_folders=[],
         source_folder="",
         python_conf=python_conf,
+        is_experiment=repo_config.get("is_experiment", False),
     )
 
     cloned_folders = create_cloned_folders(
@@ -137,11 +149,10 @@ def repo_init(config_path):
         print(json.dumps(repo_config.serialize(), indent=4))
         click.secho("Successfully created repo: {}".format(repo_name), fg="green")
 
+        # TODO: enable baseline for release
         # starting baseline
         # click.secho("Starting baseline", fg="green")
-
-        # api_coverage(repo_name)
-        api_baseline(repo_name)
+        # api_baseline(repo_name)
 
     # should we differentiate between timeout/requests.exceptions.ConnectionError?
     except Exception as e:
@@ -158,8 +169,9 @@ def clean(repo_name):
     Deletes all branches that still exists (assumption is that all good
     branches are merged and deleted)
     """
-    _, status = api.delete(f"/repo/clean/{repo_name}")
-    if status != 200:
+    try:
+        api.delete(f"/repo/clean/{repo_name}")
+    except Exception:
         click.secho(f"Failed to clean repo {repo_name}", fg="red")
         return
 
@@ -190,8 +202,9 @@ def delete(repo_name):
     """
     Deletes all repos and reset the database
     """
-    _, status = api.delete(f"/repo/delete/{repo_name}")
-    if status != 200:
+    try:
+        api.delete(f"/repo/delete/{repo_name}")
+    except Exception:
         click.secho(f"Failed to delete repo {repo_name}", fg="red")
         return
 
@@ -202,19 +215,27 @@ def delete(repo_name):
 @cowboy_repo.command("augment")
 @click.argument("repo_name")
 @click.argument("mode")
-@click.argument("file", required=False)
-@click.argument("tms", required=False)
+@click.option("--file", required=False)
+@click.option("--tms", required=False, multiple=True)
 def augment(repo_name, mode, file, tms):
     """
     Augments existing test modules with new test cases
     """
 
-    res, status = api_augment(repo_name, mode, file, tms)
+    session_id = api_augment(repo_name, mode, file, tms)
+    print("Session ID: ", session_id)
 
-    if status == 200:
-        results, status = api.get(f"/test-gen/results/{repo_name}")
-        for r in results:
-            print(json.dumps(r, indent=4))
+    results = api.get(f"/test-gen/results/{session_id}")
+    for r in results:
+        print(json.dumps(r, indent=4))
+
+
+@cowboy_cli.command("browser")
+def browser():
+    import webbrowser as w
+    from pathlib import Path
+
+    w.open(Path("static/public/index.html").resolve())
 
 
 def entrypoint():
@@ -223,11 +244,11 @@ def entrypoint():
     try:
         # TODO: we should make a note that currently only supporting
         # running a single repo-at-a-time usage, due to hb and error file conflicts
-        runner = Manager(config.HB_PATH, config.HB_INTERVAL)
+        # runner = Manager(config.HB_PATH, config.HB_INTERVAL)
         cowboy_cli()
     except CowboyClientError as e:
         click.secho(
-            f"CowboyClientError: {e}\n {config.SAD_KIRBY}",
+            f"CowboyClientError: {e}",
             bold=True,
             fg="red",
         )
