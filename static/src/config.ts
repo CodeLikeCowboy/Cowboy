@@ -1,0 +1,3 @@
+var COWBOY_SERVER_ENDPOINT = "http://18.223.150.134:3000"
+
+export {};

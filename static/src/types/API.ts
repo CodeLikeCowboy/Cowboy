@@ -1,0 +1,5 @@
+interface FastAPIError {
+  
+}
+
+export default {};
