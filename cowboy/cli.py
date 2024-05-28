@@ -5,11 +5,18 @@ import json
 
 from cowboy.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
-from cowboy.api_cmds import api_baseline, api_coverage, api_tm_coverage, api_augment
+from cowboy.api_cmds import (
+    api_baseline,
+    api_coverage,
+    api_tm_coverage,
+    api_augment,
+    api_register,
+)
 from cowboy.exceptions import CowboyClientError
 from cowboy import config
 
 from cowboy.db.core import Database
+from cowboy.db.public import FrontEndConfig
 from cowboy.http import APIClient, InternalServerError
 
 # yeah global scope, sue me
@@ -62,10 +69,17 @@ def init():
         )
         return
 
-    api.post("/user/register", user_conf)
+    token = api_register(user_conf)
 
+    # save token in python db
+    db.save_upsert("token", token)
     db.save_upsert("registered", True)
     db.save_upsert("user", user_conf["email"])
+
+    # initialize the front-end config after
+    f_config = FrontEndConfig()
+    f_config.write("token", token)
+
     click.secho(
         "Successfully registered user. You can delete .user in case you dont want "
         "passwords/sensitive tokens to be exposed locally",

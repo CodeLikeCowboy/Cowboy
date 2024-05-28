@@ -125,7 +125,7 @@ class APIClient:
 
         return self.parse_response(res)
 
-    def post(self, uri: str, data: dict, thread=False):
+    def post(self, uri: str, data: dict):
         url = urljoin(self.server, uri)
 
         res = requests.post(url, json=data, headers=self.headers)
@@ -143,13 +143,6 @@ class APIClient:
         """
         Parses token from response and handles HTTP exceptions, including retries and timeouts
         """
-        json_res = res.json()
-        if isinstance(json_res, dict):
-            auth_token = json_res.get("token", None)
-            if auth_token:
-                print("Successful login, saving token...")
-                self.db.save_upsert("token", auth_token)
-
         if res.status_code == 401:
             raise HTTPError("Unauthorized, are you registered or logged in?")
 
@@ -164,4 +157,4 @@ class APIClient:
             message = res.json()["detail"]
             raise CowboyClientError(message)
 
-        return json_res
+        return res.json()
