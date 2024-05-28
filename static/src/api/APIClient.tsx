@@ -4,16 +4,18 @@ import 'react-toastify/dist/ReactToastify.css';
 
 class APIClient {
   private axiosInstance: AxiosInstance;
+  private static config: any = {};
 
-  constructor() {
+  constructor(config?: any) {
+    APIClient.config = config || APIClient.config;
+
     this.axiosInstance = axios.create({
-      // TODO: make both of these read from config file in public
-      baseURL: 'http://18.223.150.134:3000',
+      baseURL: APIClient.config.api_endpoint,
       headers: {
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjIwMjUyMzI2MDEuMjE4MDc3LCJlbWFpbCI6InRlc3R1c2VyNkBnbWFpbC5jb20ifQ.98BU_JcTSUi9I5aGfczKZVu3uTWDmfMj8vz83tpAo-M'
+        'Authorization': `Bearer ${APIClient.config.token}`
       }
     });
-
+  
     this.axiosInstance.interceptors.response.use(
       response => response,
       error => {

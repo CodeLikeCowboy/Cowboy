@@ -1,7 +1,8 @@
 {
 	"folders": [
 		{
-			"path": "static"
+			"name": "test-frontend-user",
+			"path": "../../.."
 		}
 	],
 	"settings": {
