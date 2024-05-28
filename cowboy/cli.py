@@ -10,7 +10,7 @@ from cowboy.exceptions import CowboyClientError
 from cowboy import config
 
 from cowboy.db.core import Database
-from cowboy.http import APIClient
+from cowboy.http import APIClient, InternalServerError
 
 # yeah global scope, sue me
 db = Database()
@@ -88,9 +88,14 @@ def reset():
     for repo in db.get("repos", []):
         delete_cloned_folders(Path(config.REPO_ROOT), repo)
 
-    api.get(f"/user/delete")
-    db.reset()
+    # TODO: currently running into server error when deleting user from DB
+    # due to table cascade issues
+    try:
+        api.get(f"/user/delete")
+    except InternalServerError:
+        pass
 
+    db.reset()
     click.secho("Successfully reset user data", fg="green")
 
 
