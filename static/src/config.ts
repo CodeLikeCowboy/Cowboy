@@ -4,7 +4,7 @@ interface Config {
 }
 
 async function readConfig(): Promise<Config> {
-    const response = await fetch('/public/config.json');
+    const response = await fetch('/build/config.json');
     if (!response.ok) {
       throw new Error('Failed to fetch config.json');
     }

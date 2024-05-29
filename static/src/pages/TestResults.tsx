@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import UnitTestList from '../components/UnitTestList';
 import {getTestResults, submitTestResults} from './api';
 
@@ -6,17 +7,17 @@ import { UnitTest } from "../types/UnitTest";
 import { ToastContainer } from 'react-toastify';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
- 
+
 
 const TestResults: React.FC = () => {
-  const sessionId = '8ea7ba7c-d78b-4d63-9bc8-7297c8f2641c'; // Replace with actual session ID
+  const { sessionId } = useParams<{ sessionId: string }>();
   const [unitTests, setUnitTests] = useState<UnitTest[]>([]);
   const [selectedTests, setSelectedTests] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
     const fetchTestResults = async () => {
       try {
-        const testResults = await getTestResults(sessionId);
+        const testResults = await getTestResults(sessionId!);
         setUnitTests(testResults);
         
         const selectedTests: {[index: number]: boolean} = {};
@@ -32,7 +33,6 @@ const TestResults: React.FC = () => {
   }, []);
 
   const handleToggle = (index: number) => {
-    console.log('SelectedTests: ', selectedTests);
     setSelectedTests((prev) => {
       return {
         ...prev,
@@ -42,14 +42,13 @@ const TestResults: React.FC = () => {
   };
 
   const handleSubmit = () => {
-    console.log()
     const decisions = Object.keys(selectedTests).map((key) => ({
         id: unitTests[parseInt(key)].id,
         decision: selectedTests[parseInt(key)] ? 1 : 0
     }));
 
     console.log(decisions);
-    submitTestResults(sessionId, decisions);
+    submitTestResults(sessionId!, decisions);
   };
 
   return (

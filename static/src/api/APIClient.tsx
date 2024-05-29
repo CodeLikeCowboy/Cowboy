@@ -1,18 +1,15 @@
 import axios, { AxiosInstance } from 'axios';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 class APIClient {
   private axiosInstance: AxiosInstance;
-  private static config: any = {};
 
-  constructor(config?: any) {
-    APIClient.config = config || APIClient.config;
-
+  constructor() {  
     this.axiosInstance = axios.create({
-      baseURL: APIClient.config.api_endpoint,
+      baseURL: process.env.REACT_APP_COWBOY_API_ENDPOINT,
       headers: {
-        'Authorization': `Bearer ${APIClient.config.token}`
+        'Authorization': `Bearer ${process.env.REACT_APP_COWBOY_TOKEN}`
       }
     });
   
@@ -27,10 +24,10 @@ class APIClient {
         }
         return Promise.reject(error);
       }
-    );
+    );  
   }
   
-  public async get(uri: string, query: string = "") {
+  public async get(uri: string, query: string = "") {    
     // remove backslash so our query string can be joined properly
     if (uri.endsWith('/')) {
         uri = uri.slice(0, -1);
