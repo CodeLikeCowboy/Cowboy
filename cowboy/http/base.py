@@ -1,15 +1,12 @@
 from cowboy.config import API_ENDPOINT
 from cowboy.db.core import Database
 from cowboy.exceptions import CowboyClientError
+from cowboy.utils import start_daemon
 
 from urllib.parse import urljoin
-from threading import Thread
 import requests
 import logging
 import json
-from queue import Queue
-import signal
-import sys
 
 logger = logging.getLogger(__name__)
 
@@ -91,34 +88,9 @@ class APIClient:
         it in a new thread and use is_alive/join(timeout) to allow the sigint
         to reach the main thread
         """
-
-        url = urljoin(self.server, uri)
-        result_queue = Queue()
-
-        def target():
-            try:
-                result = self.post(url, data)
-                result_queue.put((None, result))
-            except Exception as e:
-                result_queue.put((e, None))
-
-        t = Thread(target=target, daemon=True)
-        t.start()
-
-        try:
-            while t.is_alive():
-                t.join(timeout=0.1)  # Allow signal handling
-        except KeyboardInterrupt:
-            sys.exit()
-
-        exception, result = result_queue.get()
-        if exception:
-            raise exception
-
-        return result
+        return start_daemon(self.post, (uri, data))
 
     def get(self, uri: str):
-        print(f"GET: {uri} :: {self.headers}")
         url = urljoin(self.server, uri)
 
         res = requests.get(url, headers=self.headers)

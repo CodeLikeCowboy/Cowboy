@@ -1,5 +1,6 @@
 from setuptools import Extension, find_packages, setup
 
+# TODO: figure out how to run npm run build
 setup(
     name="cowboy-client",
     version="0.0.12",

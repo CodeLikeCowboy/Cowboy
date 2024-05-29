@@ -70,7 +70,7 @@ class Database:
         except IOError as e:
             print(f"Error saving to DB file: {e}")
 
-    def save_list(self, key, value):
+    def save_to_list(self, key, value):
         """
         Adds a value to a list
         """
@@ -85,6 +85,19 @@ class Database:
 
         except IOError as e:
             print(f"Error saving to DB file: {e}")
+
+    def delete_from_list(self, key, value):
+        """
+        Deletes a value from a list
+        """
+        try:
+            data = self.get_all()
+            data[key].remove(value)
+        except KeyError:
+            return
+
+        with open(self.db_path, "w") as f:
+            json.dump(data, f)
 
     def get(self, key, default=None):
         return self.get_all().get(key, default)

@@ -3,6 +3,8 @@ import string
 import shutil
 import os
 import subprocess
+import threading
+from queue import Queue
 
 
 def gen_random_name():
@@ -50,3 +52,34 @@ def locate_python_interpreter():
             continue
 
     raise FileNotFoundError("Python interpreter not found on this host")
+
+
+def start_daemon(task, args):
+    """
+    Starts a daemon thread that continuously joins/checks is_alive to
+    allow for sigints to pass thru (which would otherwise get consumed
+    by some blocking python functions)
+    """
+    result_queue = Queue()
+
+    def target():
+        try:
+            result = task(*args)
+            result_queue.put((None, result))
+        except Exception as e:
+            result_queue.put((e, None))
+
+    t = threading.Thread(target=target, daemon=True)
+    t.start()
+
+    try:
+        while t.is_alive():
+            t.join(timeout=0.1)  # Allow signal handling
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt
+
+    exception, result = result_queue.get()
+    if exception:
+        raise exception
+
+    return result

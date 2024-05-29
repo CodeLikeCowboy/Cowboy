@@ -12,11 +12,12 @@ from cowboy.api_cmds import (
     api_augment,
     api_register,
 )
+from cowboy.browser import serve_ui
 from cowboy.exceptions import CowboyClientError
 from cowboy import config
 
 from cowboy.db.core import Database
-from cowboy.db.public import FrontEndConfig
+from cowboy.db.public import init_react_env_vars
 from cowboy.http import APIClient, InternalServerError
 
 # yeah global scope, sue me
@@ -77,8 +78,7 @@ def init():
     db.save_upsert("user", user_conf["email"])
 
     # initialize the front-end config after
-    f_config = FrontEndConfig()
-    f_config.write("token", token)
+    init_react_env_vars(token, config.API_ENDPOINT)
 
     click.secho(
         "Successfully registered user. You can delete .user in case you dont want "
@@ -158,6 +158,7 @@ def repo_init(config_path):
         is_experiment=repo_config.get("is_experiment", False),
     )
 
+    db.save_to_list("repos", repo_name)
     cloned_folders = create_cloned_folders(
         repo_config, Path(config.REPO_ROOT), db, config.NUM_CLONES
     )
@@ -177,24 +178,10 @@ def repo_init(config_path):
     except Exception as e:
         click.secho(f"Repo creation failed on server: {e}", fg="red")
         click.secho(f"Rolling back repo creation", fg="red")
+
+        db.delete_from_list("repos", repo_name)
         delete_cloned_folders(Path(config.REPO_ROOT), repo_name)
         return
-
-
-@cowboy_repo.command("clean")
-@click.argument("repo_name")
-def clean(repo_name):
-    """
-    Deletes all branches that still exists (assumption is that all good
-    branches are merged and deleted)
-    """
-    try:
-        api.delete(f"/repo/clean/{repo_name}")
-    except Exception:
-        click.secho(f"Failed to clean repo {repo_name}", fg="red")
-        return
-
-    click.secho(f"Cleaned repo {repo_name}", fg="green")
 
 
 @cowboy_repo.command("coverage")
@@ -227,6 +214,7 @@ def delete(repo_name):
         click.secho(f"Failed to delete repo {repo_name}", fg="red")
         return
 
+    db.delete_from_list("repos", repo_name)
     delete_cloned_folders(Path(config.REPO_ROOT), repo_name)
     click.secho(f"Deleted repo {repo_name}", fg="green")
 
@@ -242,19 +230,16 @@ def augment(repo_name, mode, file, tms):
     """
 
     session_id = api_augment(repo_name, mode, file, tms)
-    print("Session ID: ", session_id)
+    serve_ui(session_id)
 
-    results = api.get(f"/test-gen/results/{session_id}")
-    for r in results:
-        print(json.dumps(r, indent=4))
+    # results = api.get(f"/test-gen/results/{session_id}")
+    # for r in results:
+    #     print(json.dumps(r, indent=4))
 
 
 @cowboy_cli.command("browser")
 def browser():
-    import webbrowser as w
-    from pathlib import Path
-
-    w.open(Path("static/public/index.html").resolve())
+    serve_ui("8ea7ba7c-d78b-4d63-9bc8-7297c8f2641c")
 
 
 def entrypoint():

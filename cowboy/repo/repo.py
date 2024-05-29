@@ -45,14 +45,12 @@ def create_cloned_folders(
     """
     Clones the repo from the forked_url
     """
-    print("Cloning repos ...")
     cloned_folders = []
     repo = db.get(repo_conf.repo_name)
     if repo:
         click.secho("Repo already exists", fg="red")
         sys.exit()
 
-    db.save_list("repos", repo_conf.repo_name)
     if len(repo_conf.cloned_folders) < num_clones:
         for i in range(num_clones - len(repo_conf.cloned_folders)):
             cloned_path = clone_repo(repo_root, repo_conf.url, repo_conf.repo_name)
