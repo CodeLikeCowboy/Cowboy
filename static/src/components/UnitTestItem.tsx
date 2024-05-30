@@ -1,4 +1,5 @@
 import React from 'react';
+import { CodeBlock } from 'react-code-blocks';
 import { Checkbox, Card, CardContent, Typography, Box } from '@mui/material';
 
 interface UnitTestItemProps {
@@ -23,9 +24,11 @@ const UnitTestItem: React.FC<UnitTestItemProps> = ({ index, code, isChecked, onT
             {covImproved}%
           </Typography>
         </Box>
-        <Box sx={{ backgroundColor: '#333', color: '#fff', p: 2, borderRadius: 1 }}>
+        <CodeBlock text={code} language="python"></CodeBlock>
+
+        {/* <Box sx={{ backgroundColor: '#333', color: '#fff', p: 2, borderRadius: 1 }}>
           <pre>{code}</pre>
-        </Box>
+        </Box> */}
       </CardContent>
     </Card>
   );

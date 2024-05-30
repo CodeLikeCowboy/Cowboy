@@ -7,6 +7,7 @@ import { UnitTest } from "../types/UnitTest";
 import { ToastContainer } from 'react-toastify';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
 
 
 const TestResults: React.FC = () => {
@@ -53,20 +54,31 @@ const TestResults: React.FC = () => {
 
   return (
     <Container>
+      <Box          
+        width="60%"
+        display="flex"
+        flexDirection="column"
+        // justifyContent="center"
+        alignItems="center"
+        sx={{ mt: 5 , mb: 5}}>
+
         <UnitTestList 
-        initialTests={unitTests} 
-        selectedTests={selectedTests} 
-        onToggle={handleToggle} 
-        />
-        <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={handleSubmit} 
-            fullWidth
-            sx={{ mt: 3 }}
-        >
-        Submit
-        </Button>
+          initialTests={unitTests} 
+          selectedTests={selectedTests} 
+          onToggle={handleToggle} 
+          />
+          <Box width="50%" display="flex" justifyContent="flex-end">
+            <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={handleSubmit} 
+                fullWidth
+                sx={{ mb: 3 }}
+            >
+              Submit
+            </Button>
+          </Box>
+    </Box>
     <ToastContainer />
   </Container>
 

@@ -12,19 +12,17 @@ interface UnitTestListProps {
 const UnitTestList: React.FC<UnitTestListProps> = ({ initialTests, selectedTests, onToggle }) => {
   return (
     <Container>
-      <Box display="flex" justifyContent="center" sx={{ mt: 5 }}>
-        <Box width="60%">
-          {initialTests.map((test, index) => (
-            <UnitTestItem
-              key={index}
-              index={index}
-              code={test.test_case}
-              isChecked={!!selectedTests[index]}
-              onToggle={onToggle}
-              covImproved={test.cov_improved}
-            />
-          ))}
-        </Box>
+      <Box>
+        {initialTests.map((test, index) => (
+          <UnitTestItem
+            key={index}
+            index={index}
+            code={test.test_case}
+            isChecked={!!selectedTests[index]}
+            onToggle={onToggle}
+            covImproved={test.cov_improved}
+          />
+        ))}
       </Box>
     </Container>
   );
