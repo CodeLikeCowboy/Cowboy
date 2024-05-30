@@ -1,5 +1,19 @@
-interface FastAPIError {
-  
+interface UnitTest {
+    id: string,
+    name: string,
+    testfile: string
+    test_case: string,
+    decided: number,
+    cov_improved: number
+  }
+
+interface UnitTestDecision {
+  id: string,
+  decision: number
 }
 
-export default {};
+interface CompareURLResponse {
+    compare_url: string
+}
+
+export type { UnitTest, UnitTestDecision, CompareURLResponse };

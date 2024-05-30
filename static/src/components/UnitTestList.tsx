@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Container, Box, Button } from '@mui/material';
 import UnitTestItem from './UnitTestItem';
-import { UnitTest } from '../types/UnitTest';
+import { UnitTest } from '../types/API';
 
 interface UnitTestListProps {
     initialTests: UnitTest[];

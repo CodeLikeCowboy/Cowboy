@@ -1,5 +1,5 @@
 import APIClient from "../api/APIClient";
-import { UnitTest, UnitTestDecision } from "../types/UnitTest";
+import { UnitTest, UnitTestDecision, CompareURLResponse } from "../types/API";
 
 const api = new APIClient();
 
@@ -9,8 +9,9 @@ async function getTestResults(sessionId: string): Promise<UnitTest[]> {
     return test_results as UnitTest[];
 };
 
-async function submitTestResults(sessionId: string, decisions: UnitTestDecision[]) {
-    await api.post(`/test-gen/results/decide/${sessionId}`, {"user_decision": decisions});
+async function submitTestResults(sessionId: string, decisions: UnitTestDecision[]): Promise<CompareURLResponse> {
+    const res = await api.post(`/test-gen/results/decide/${sessionId}`, {"user_decision": decisions});
+    return res as CompareURLResponse;
 }
 
 

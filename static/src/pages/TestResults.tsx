@@ -3,14 +3,16 @@ import { useParams } from 'react-router-dom';
 import UnitTestList from '../components/UnitTestList';
 import {getTestResults, submitTestResults} from './api';
 
-import { UnitTest } from "../types/UnitTest";
+import { UnitTest } from "../types/API";
 import { ToastContainer } from 'react-toastify';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 
+import { useNavigate } from 'react-router-dom';
 
 const TestResults: React.FC = () => {
+  const navigate = useNavigate();
   const { sessionId } = useParams<{ sessionId: string }>();
   const [unitTests, setUnitTests] = useState<UnitTest[]>([]);
   const [selectedTests, setSelectedTests] = useState<{ [key: number]: boolean }>({});
@@ -42,14 +44,14 @@ const TestResults: React.FC = () => {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const decisions = Object.keys(selectedTests).map((key) => ({
         id: unitTests[parseInt(key)].id,
         decision: selectedTests[parseInt(key)] ? 1 : 0
     }));
 
-    console.log(decisions);
-    submitTestResults(sessionId!, decisions);
+    const res = await submitTestResults(sessionId!, decisions);
+    navigate(`/compare-url/${encodeURIComponent(res.compare_url)}`);
   };
 
   return (
