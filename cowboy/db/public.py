@@ -6,7 +6,10 @@ def init_react_env_vars(token, api_endpoint):
     """
     Init the .env file in the react folder
     """
-    env_vars = {"COWBOY_TOKEN": token, "COWBOY_API_ENDPOINT": api_endpoint}
+    env_vars = {
+        "REACT_APP_COWBOY_TOKEN": token,
+        "REACT_APP_COWBOY_API_ENDPOINT": api_endpoint,
+    }
 
     env_file_path = Path("static/.env")
     with env_file_path.open("w") as env_file:

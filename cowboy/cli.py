@@ -15,6 +15,7 @@ from cowboy.api_cmds import (
 from cowboy.browser import serve_ui
 from cowboy.exceptions import CowboyClientError
 from cowboy import config
+from cowboy.task_client.manager import Manager
 
 from cowboy.db.core import Database
 from cowboy.db.public import init_react_env_vars

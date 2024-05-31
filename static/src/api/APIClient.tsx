@@ -6,6 +6,7 @@ class APIClient {
   private axiosInstance: AxiosInstance;
 
   constructor() {  
+    console.log("ENDPOINT: ", process.env.REACT_APP_COWBOY_API_ENDPOINT);
     this.axiosInstance = axios.create({
       baseURL: process.env.REACT_APP_COWBOY_API_ENDPOINT,
       headers: {

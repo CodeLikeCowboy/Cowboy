@@ -1,4 +1,4 @@
-from cowboy.utils import locate_python_interpreter
+from cowboy_lib.utils import locate_python_interpreter
 
 from pathlib import Path
 import subprocess
