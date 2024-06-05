@@ -88,7 +88,7 @@ def init():
     )
 
 
-@cowboy_user.command("update_oai_key")
+@cowboy_user.command("update-oai-key")
 @click.argument("openai_api_key")
 def update_oai(openai_api_key):
     """Updates the openapi key for the user."""
