@@ -3,6 +3,7 @@ from cowboy.utils import start_daemon
 from http.server import SimpleHTTPRequestHandler
 from webbrowser import open
 import socketserver
+import os
 
 DIRECTORY = "static/build"
 HOST = "localhost"
@@ -16,8 +17,13 @@ class CustomHandler(SimpleHTTPRequestHandler):
     # need this to route all requests to index.html or else the web server
     # will default try look for files in the served directory
     def do_GET(self):
+        if self.path != "/" and self.path != "" and self.path != "/index.html":
+            if os.path.exists(self.translate_path(self.path)):
+                print("Routing to file: ", self.path)
+                return super().do_GET()
+
         self.path = "/"
-        super().do_GET()
+        return super().do_GET()
 
 
 def serve_ui(session_id):

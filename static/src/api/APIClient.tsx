@@ -29,6 +29,7 @@ class APIClient {
   }
   
   public async get(uri: string, query: string = "") {    
+    console.log("GET: ", uri);
     // remove backslash so our query string can be joined properly
     if (uri.endsWith('/')) {
         uri = uri.slice(0, -1);
@@ -42,6 +43,8 @@ class APIClient {
   }
 
   public async post(uri: string, data: any) {
+    console.log("POST: ", uri);
+
     const response = await this.axiosInstance.post(uri, data);
     return response.data;
   }
