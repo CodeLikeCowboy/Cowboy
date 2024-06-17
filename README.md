@@ -9,11 +9,10 @@ email: helloworld@gmail.com
 openai_api_key: sk-K***********************7
 ```
 
-Then call
+Initialize your user
 ```
 cowboy user init
 ```
-to initialize your user
 
 Next create a YAML repo config
 ```
