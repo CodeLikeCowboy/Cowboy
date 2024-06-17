@@ -1,5 +1,6 @@
 from cowboy.http import APIClient
 from cowboy.db.core import Database
+from typing import List
 
 from enum import Enum
 
@@ -9,12 +10,14 @@ api = APIClient(db)
 
 class AugmentTestMode(str, Enum):
     AUTO = "auto"
-    FILE = "file"
+    FILE = "files"
     TM = "module"
     ALL = "all"
 
 
-def api_augment(repo_name: str, mode: str = "auto", src_file: str = "", tms: str = ""):
+def api_augment(
+    repo_name: str, mode: str = "auto", files: List[str] = [], tms: str = ""
+):
     """
     Augments existing test modules with new test cases
     """
@@ -26,10 +29,10 @@ def api_augment(repo_name: str, mode: str = "auto", src_file: str = "", tms: str
     response = api.long_post(
         "/test-gen/augment",
         {
-            "src_file": src_file,
             "repo_name": repo_name,
             "mode": mode,
             "tms": tms,
+            "files": files,
         },
     )
 

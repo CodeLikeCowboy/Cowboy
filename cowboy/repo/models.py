@@ -1,6 +1,4 @@
-from dataclasses import dataclass
-from typing import Any, List, Optional
-from pathlib import Path
+from typing import List, Optional
 
 from pydantic import BaseModel, validator
 from cowboy.db.core import Database

@@ -6,16 +6,14 @@ import json
 from cowboy.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
 from cowboy.api_cmds import (
-    api_baseline,
+    api_build_tm_mapping,
     api_coverage,
-    api_tm_coverage,
     api_augment,
     api_register,
 )
 from cowboy.browser import serve_ui
 from cowboy.exceptions import CowboyClientError
 from cowboy import config
-from cowboy.task_client.manager import Manager
 
 from cowboy.db.core import Database
 from cowboy.db.public import init_react_env_vars
@@ -170,11 +168,6 @@ def repo_init(config_path):
         print(json.dumps(repo_config.serialize(), indent=4))
         click.secho("Successfully created repo: {}".format(repo_name), fg="green")
 
-        # TODO: enable baseline for release
-        # starting baseline
-        # click.secho("Starting baseline", fg="green")
-        # api_baseline(repo_name)
-
     # should we differentiate between timeout/requests.exceptions.ConnectionError?
     except Exception as e:
         click.secho(f"Repo creation failed on server: {e}", fg="red")
@@ -189,18 +182,6 @@ def repo_init(config_path):
 @click.argument("repo_name")
 def cmd_coverage(repo_name):
     api_coverage(repo_name)
-
-
-@cowboy_repo.command("baseline")
-@click.argument("repo_name")
-def cmd_baseline(repo_name):
-    api_baseline(repo_name)
-
-
-@cowboy_repo.command("sorted_coverage")
-@click.argument("repo_name")
-def cmd_sorted_coverage(repo_name):
-    api_tm_coverage(repo_name)
 
 
 @cowboy_repo.command("delete")
@@ -222,20 +203,39 @@ def delete(repo_name):
 
 @cowboy_repo.command("augment")
 @click.argument("repo_name")
-@click.argument("mode")
-@click.option("--file", required=False)
+@click.option("--mode", default="auto")
+@click.option("--files", required=False, multiple=True)
 @click.option("--tms", required=False, multiple=True)
-def augment(repo_name, mode, file, tms):
+def augment(repo_name, mode, files, tms):
     """
     Augments existing test modules with new test cases
     """
+    # TODO: we should allow both files and tms at same time
+    if files and tms:
+        raise Exception("Cannot specify both files and tms")
+    elif files:
+        mode = "file"
+    elif tms:
+        mode = "module"
+    # this is the "first-time user" mode so we run build_mapping beforehand
+    elif mode == "auto":
+        if files or tms:
+            raise Exception("Cannot specify file or tms when mode=auto")
+        api_build_tm_mapping(repo_name, mode, files, tms)
+    elif not files and not tms:
+        mode = "all"
 
-    session_id = api_augment(repo_name, mode, file, tms)
+    session_id = api_augment(repo_name, mode, files, tms)
     serve_ui(session_id)
 
-    # results = api.get(f"/test-gen/results/{session_id}")
-    # for r in results:
-    #     print(json.dumps(r, indent=4))
+
+@cowboy_repo.command("build_tm_mapping")
+@click.argument("repo_name")
+def build_tm_mapping(repo_name):
+    """
+    Builds the test module to source file mapping for ALL test_modules
+    """
+    api_build_tm_mapping(repo_name, "all", [], [])
 
 
 @cowboy_cli.command("browser")
