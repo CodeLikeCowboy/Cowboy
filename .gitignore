@@ -64,3 +64,4 @@ repos/*
 test_init
 dist/*
 logs/*
+db.json

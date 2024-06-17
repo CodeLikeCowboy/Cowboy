@@ -8,6 +8,8 @@ clean:
 	rm -rf cowboy.egg-info
 
 build: clean
+	cd static && npm run build && cd ..
+
 	$(PYTHON) -m build .
 
 	# switch over to the release version of the config

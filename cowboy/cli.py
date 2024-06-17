@@ -225,6 +225,7 @@ def augment(repo_name, mode, files, tms):
     elif not files and not tms:
         mode = "all"
 
+    print("Finished mapping ...")
     session_id = api_augment(repo_name, mode, files, tms)
     serve_ui(session_id)
 

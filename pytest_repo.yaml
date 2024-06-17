@@ -1,0 +1,6 @@
+# TODO: write comments on each of these fields to explain what they do
+repo_name: "test_repo"
+url: https://github.com/JohnPeng47/Test-Repo.git
+cov_folders: [""]
+interp: python
+is_experiment: false  

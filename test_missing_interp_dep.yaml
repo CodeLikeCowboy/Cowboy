@@ -2,5 +2,4 @@
 repo_name: "test3"
 url: https://github.com/JohnPeng47/codecov-cli-neuteured.git
 cov_folders: ["codecov_cli"]
-is_experiment: false
 interp: python
