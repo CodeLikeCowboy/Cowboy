@@ -1,4 +1,4 @@
-First start by installing cowboy via pip
+Install
 
 ```
 pip install cowboy
