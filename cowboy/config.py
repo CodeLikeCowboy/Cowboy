@@ -25,5 +25,4 @@ LOG_DIR = COWBOY_DIR / "logs"
 API_ENDPOINT = "http://18.223.150.134:3000"
 TASK_ENDPOINT = f"{API_ENDPOINT}/task/get"
 
-# for frontend
-COWBOY_FRONTEND_CONFIG = Path("static/build/config.json")
+COWBOY_FRONTEND_CONFIG = Path("build/config.json")

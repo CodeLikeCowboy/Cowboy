@@ -5,7 +5,7 @@ from webbrowser import open
 import socketserver
 import os
 
-DIRECTORY = "static/build"
+DIRECTORY = "build"
 HOST = "localhost"
 PORT = 8001
 
