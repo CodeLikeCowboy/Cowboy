@@ -41,3 +41,14 @@ def start_daemon(task, args):
         raise exception
 
     return result
+
+
+def is_port_available(port):
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("", port))
+            return True
+        except OSError:
+            return False

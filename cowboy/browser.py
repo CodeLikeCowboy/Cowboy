@@ -1,13 +1,15 @@
-from cowboy.utils import start_daemon
+from cowboy.utils import start_daemon, is_port_available
 
 from http.server import SimpleHTTPRequestHandler
 from webbrowser import open
 import socketserver
 import os
+import sys
 
 DIRECTORY = "build"
 HOST = "localhost"
-PORT = 8001
+PORT = 8085
+MAX_RETRIES = 10
 
 
 class CustomHandler(SimpleHTTPRequestHandler):
@@ -27,10 +29,20 @@ class CustomHandler(SimpleHTTPRequestHandler):
 
 
 def serve_ui(session_id):
-    def run_server():
-        with socketserver.TCPServer(("", PORT), CustomHandler) as httpd:
+    def run_server(port):
+        print("Running server on port: ", port)
+        with socketserver.TCPServer(("", port), CustomHandler) as httpd:
             httpd.serve_forever()
 
-    # technically doing this out of order but its fine ..
-    open(f"http://{HOST}:{PORT}/test-results/{session_id}")
-    start_daemon(run_server, ())
+    retries = 0
+    port = PORT
+
+    while retries < MAX_RETRIES:
+        if is_port_available(port):
+            # technically doing this out of order but its fine ..
+            open(f"http://{HOST}:{PORT}/test-results/{session_id}")
+            start_daemon(run_server, (port,))
+            return
+
+        retries += 1
+        port += 1

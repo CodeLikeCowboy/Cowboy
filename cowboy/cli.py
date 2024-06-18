@@ -254,8 +254,9 @@ def build_tm_mapping(repo_name, mode, files, tms):
 
 
 @cowboy_cli.command("browser")
-def browser():
-    serve_ui("8ea7ba7c-d78b-4d63-9bc8-7297c8f2641c")
+@click.argument("session_id")
+def browser(session_id):
+    serve_ui(session_id)
 
 
 def entrypoint():
