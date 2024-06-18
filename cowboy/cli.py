@@ -221,22 +221,36 @@ def augment(repo_name, mode, files, tms):
     elif mode == "auto":
         if files or tms:
             raise Exception("Cannot specify file or tms when mode=auto")
-        api_build_tm_mapping(repo_name, mode, files, tms)
+        api_build_tm_mapping(repo_name, mode, [], [])
     elif not files and not tms:
         mode = "all"
 
-    print("Finished mapping ...")
     session_id = api_augment(repo_name, mode, files, tms)
     serve_ui(session_id)
 
 
 @cowboy_repo.command("build_tm_mapping")
 @click.argument("repo_name")
-def build_tm_mapping(repo_name):
+@click.option("--mode", default="auto")
+@click.option("--files", required=False, multiple=True)
+@click.option("--tms", required=False, multiple=True)
+def build_tm_mapping(repo_name, mode, files, tms):
     """
     Builds the test module to source file mapping for ALL test_modules
     """
-    api_build_tm_mapping(repo_name, "all", [], [])
+    # TODO: we should allow both files and tms at same time
+    if files and tms:
+        raise Exception("Cannot specify both files and tms")
+    elif files:
+        mode = "file"
+    elif tms:
+        mode = "module"
+    # this is the "first-time user" mode so we run build_mapping beforehand
+    elif not files and not tms:
+        mode = "all"
+
+    # api_build_tm_mapping(repo_name, mode, files, tms)
+    api_build_tm_mapping(repo_name, "module", [], ["TestBitrise"])
 
 
 @cowboy_cli.command("browser")

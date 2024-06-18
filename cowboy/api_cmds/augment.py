@@ -27,7 +27,7 @@ def api_augment(
         )
 
     response = api.long_post(
-        "/test-gen/augment",
+        f"/test-gen/augment",
         {
             "repo_name": repo_name,
             "mode": mode,

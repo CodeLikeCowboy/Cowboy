@@ -12,11 +12,12 @@ def api_build_tm_mapping(repo_name, mode, files, tms):
     test module
     """
     api.long_post(
-        f"/tm/target-coverage",
+        "/tm/build-mapping",
         {
             "repo_name": repo_name,
             "mode": mode,
             "tms": tms,
             "files": files,
+            "overwrite": False,
         },
     )
