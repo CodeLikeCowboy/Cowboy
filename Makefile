@@ -8,6 +8,8 @@ clean:
 	rm -rf cowboy.egg-info
 
 build: clean
+	git submodule update --init --recursive
+	
 	cd static && npm run build && cd ..
 
 	$(PYTHON) -m build .
@@ -22,7 +24,6 @@ install-local: build
 	cp tests/init/user1.yaml ~/package/cowboy/.user
 	cp tests/init/test.yaml ~/package/cowboy/test.yaml
 	
-
 upload-test: build
 	$(PYTHON) -m twine upload --repository pypitest dist/*
 

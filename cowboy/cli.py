@@ -11,6 +11,7 @@ from cowboy.api_cmds import (
     api_augment,
     api_register,
 )
+from cowboy.task_client import Manager
 from cowboy.browser import serve_ui
 from cowboy.exceptions import CowboyClientError
 from cowboy import config
@@ -64,7 +65,7 @@ def init():
     if registered:
         click.secho(
             "We are currently only supporting one user per client. If you want to re-register, "
-            "first delete the current user via 'cowboy delete_user'",
+            f"or something has gone wrong, manually delete {config.DB_PATH} and run cowboy user init again.",
             fg="red",
         )
         return
@@ -265,7 +266,7 @@ def entrypoint():
     try:
         # TODO: we should make a note that currently only supporting
         # running a single repo-at-a-time usage, due to hb and error file conflicts
-        # runner = Manager(config.HB_PATH, config.HB_INTERVAL)
+        runner = Manager(config.HB_PATH, config.HB_INTERVAL)
         cowboy_cli()
     except CowboyClientError as e:
         click.secho(
