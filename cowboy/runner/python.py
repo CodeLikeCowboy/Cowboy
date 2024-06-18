@@ -81,7 +81,6 @@ class LockedRepos:
             self.release((path, git_repo))
 
     def release(self, path_n_git: Tuple[Path, GitRepo]):
-        print(f"Releasing repo: {path_n_git[0].name}")
         self.queue.put(path_n_git)  # Return the repo back to the queue
 
     def __len__(self):
@@ -139,9 +138,6 @@ class PytestDiffRunner:
                 )
             )
         )
-
-        print(f"Initialized locked repos: {self.test_repos}")
-
         if len(self.test_repos) == 0:
             raise CowboyClientError("No cloned repos created, perhaps run init again?")
 
@@ -154,7 +150,6 @@ class PytestDiffRunner:
         deps = ["pytest-cov"]
         try:
             for dep in deps:
-                print(f"Checking for {dep} in {interp}")
                 result = subprocess.run(
                     [interp, "-m", "pip", "show", dep],
                     capture_output=True,
@@ -263,7 +258,7 @@ class PytestDiffRunner:
             patch_file = args.patch_file
             if patch_file:
                 patch_file.path = cloned_path / patch_file.path
-                print(f"Using patch file: {patch_file.path}")
+                task_log(f"Using patch file: {patch_file.path}")
 
             exclude_tests = args.exclude_tests
             include_tests = args.include_tests
@@ -276,7 +271,7 @@ class PytestDiffRunner:
             include_tests = self._get_include_tests_arg_str(include_tests)
             cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
 
-            print(f"Running with command: {cmd_str}")
+            task_log(f"Running with command: {cmd_str}")
 
             with PatchFileContext(git_repo, patch_file):
                 proc = subprocess.Popen(

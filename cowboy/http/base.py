@@ -100,6 +100,7 @@ class APIClient:
     def post(self, uri: str, data: dict):
         url = urljoin(self.server, uri)
 
+        print(url, data)
         res = requests.post(url, json=data, headers=self.headers)
 
         return self.parse_response(res)
@@ -118,15 +119,16 @@ class APIClient:
         if res.status_code == 401:
             raise HTTPError("Unauthorized, are you registered or logged in?")
 
-        elif res.status_code == 422:
-            message = res.json()["detail"][0]["msg"]
-            raise HTTPError(json.dumps(res.json(), indent=2))
-
         elif res.status_code == 500:
             raise InternalServerError()
 
-        elif res.status_code == 400:
+        elif res.status_code == 400 or res.status_code == 422:
             message = res.json()["detail"]
+            try:
+                message = json.dumps(message, indent=2)
+            except json.JSONDecodeError:
+                pass
+
             raise CowboyClientError(message)
 
         return res.json()

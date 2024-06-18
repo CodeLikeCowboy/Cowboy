@@ -1,8 +1,5 @@
 import random
 import string
-import shutil
-import os
-import subprocess
 import threading
 from queue import Queue
 
