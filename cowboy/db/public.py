@@ -1,5 +1,5 @@
-from cowboy.config import COWBOY_FRONTEND_CONFIG, API_ENDPOINT
 from pathlib import Path
+import json
 
 
 def init_react_env_vars(token, api_endpoint):
@@ -7,11 +7,10 @@ def init_react_env_vars(token, api_endpoint):
     Init the .env file in the react folder
     """
     env_vars = {
-        "REACT_APP_COWBOY_TOKEN": token,
-        "REACT_APP_COWBOY_API_ENDPOINT": api_endpoint,
+        "jwt_token": token,
+        "api_endpoint": api_endpoint,
     }
 
-    env_file_path = Path("static/.env")
-    with env_file_path.open("w") as env_file:
-        for key, value in env_vars.items():
-            env_file.write(f"{key}={value}\n")
+    config = Path("build/config.json")
+    with config.open("w") as config:
+        config.write(json.dumps(env_vars))

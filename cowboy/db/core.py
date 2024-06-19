@@ -29,7 +29,8 @@ class Database:
         Initialize empty json at db_path
         """
         if not os.path.exists(db_path):
-            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            if os.path.isdir(db_path):
+                os.makedirs(os.path.dirname(db_path), exist_ok=True)
             with open(db_path, "w") as f:
                 f.write("{}")
 

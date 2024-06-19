@@ -99,8 +99,6 @@ class APIClient:
 
     def post(self, uri: str, data: dict):
         url = urljoin(self.server, uri)
-
-        print(url, data)
         res = requests.post(url, json=data, headers=self.headers)
 
         return self.parse_response(res)

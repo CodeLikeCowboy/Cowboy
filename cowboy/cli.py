@@ -7,7 +7,6 @@ from cowboy.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
 from cowboy.api_cmds import (
     api_build_tm_mapping,
-    api_coverage,
     api_augment,
     api_register,
 )
@@ -179,12 +178,6 @@ def repo_init(config_path):
         return
 
 
-@cowboy_repo.command("coverage")
-@click.argument("repo_name")
-def cmd_coverage(repo_name):
-    api_coverage(repo_name)
-
-
 @cowboy_repo.command("delete")
 @click.argument("repo_name")
 def delete(repo_name):
@@ -230,14 +223,14 @@ def augment(repo_name, mode, files, tms):
     serve_ui(session_id)
 
 
-@cowboy_repo.command("build_tm_mapping")
+@cowboy_repo.command("build_mapping")
 @click.argument("repo_name")
 @click.option("--mode", default="auto")
 @click.option("--files", required=False, multiple=True)
 @click.option("--tms", required=False, multiple=True)
 def build_tm_mapping(repo_name, mode, files, tms):
     """
-    Builds the test module to source file mapping for ALL test_modules
+    Builds test module to source mapping
     """
     # TODO: we should allow both files and tms at same time
     if files and tms:
@@ -250,8 +243,8 @@ def build_tm_mapping(repo_name, mode, files, tms):
     elif not files and not tms:
         mode = "all"
 
-    # api_build_tm_mapping(repo_name, mode, files, tms)
-    api_build_tm_mapping(repo_name, "module", [], ["TestBitrise"])
+    api_build_tm_mapping(repo_name, mode, files, tms)
+    # api_build_tm_mapping(repo_name, "module", [], ["TestBitrise"])
 
 
 @cowboy_cli.command("browser")
