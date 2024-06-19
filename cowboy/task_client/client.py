@@ -78,29 +78,15 @@ class BGClient:
 
     def start_polling(self):
         while True:
-            try:
-                task_res = self.api_client.poll()
-                if task_res:
-                    task_log.info(f"Receieved {len(task_res)} tasks from server")
-                    for t in task_res:
-                        task = RunTestTaskClient(**t, **t["task_args"])
-                        self.curr_t.append(task.task_id)
+            task_res = self.api_client.poll()
+            if task_res:
+                task_log.info(f"Receieved {len(task_res)} tasks from server")
+                for t in task_res:
+                    task = RunTestTaskClient(**t, **t["task_args"])
+                    self.curr_t.append(task.task_id)
 
-                        # self.run_task(task)
-                        threading.Thread(target=self.run_task, args=(task,)).start()
-
-            # These errors result from how we handle server restarts
-            # and our janky non-db auth method so can just ignore
-            except (TypeError, ConnectionError):
-                continue
-
-            # TODO: should change this to RunnerException?
-            except Exception as e:
-                task.result = TaskResult(exception=str(e))
-                self.complete_task(task)
-
-                task_log.error(f"Exception from runner: {e} : {type(e).__name__}")
-                continue
+                    # self.run_task(task)
+                    threading.Thread(target=self.run_task, args=(task,)).start()
 
             time.sleep(1.0)  # Poll every 'interval' second
 
@@ -108,12 +94,22 @@ class BGClient:
         """
         Runs task and updates its result field when finished
         """
-        task_log.info(f"Starting task: {task.task_id}")
-        runner = self.get_runner(task.repo_name)
-        cov_res, *_ = runner.run_testsuite(task.task_args)
-        task.result = TaskResult(**cov_res.to_dict())
+        try:
+            task_log.info(f"Starting task: {task.task_id}")
+            runner = self.get_runner(task.repo_name)
+            cov_res, *_ = runner.run_testsuite(task.task_args)
+            task.result = TaskResult(**cov_res.to_dict())
+            self.complete_task(task)
 
-        self.complete_task(task)
+        # These errors result from how we handle server restarts
+        # and our janky non-db auth method so can just ignore
+        except (TypeError, ConnectionError):
+            pass
+
+        except Exception as e:
+            task.result = TaskResult(exception=str(e))
+            self.complete_task(task)
+            task_log.error(f"Exception from runner: {e} : {type(e).__name__}")
 
     def complete_task(self, task: RunTestTaskClient):
         # Note: json() actually converts nested objects, unlike dict
@@ -127,7 +123,6 @@ class BGClient:
 
     def heart_beat(self):
         new_file_mode = False
-        # create file
         if not self.heart_beat_fp.exists():
             with open(self.heart_beat_fp, "w") as f:
                 f.write("")
@@ -182,5 +177,6 @@ if __name__ == "__main__":
     BGClient(api, TASK_ENDPOINT, hb_path, hb_interval)
 
     # keep main thread alive so we can terminate all threads via sys interrupt
+    # (because main thread is the only one we can send signals to)
     while True:
         time.sleep(1.0)
