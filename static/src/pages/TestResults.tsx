@@ -21,6 +21,9 @@ const TestResults: React.FC = () => {
     const fetchTestResults = async () => {
       try {
         const testResults = await getTestResults(sessionId!);
+        if (testResults.length === 0) {
+          navigate(`/no-results`);
+        }
         setUnitTests(testResults);
         
         const selectedTests: {[index: number]: boolean} = {};

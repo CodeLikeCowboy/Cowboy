@@ -1,10 +1,10 @@
-interface Config {
-    token: string
+export interface Config {
+    jwt_token: string
     api_endpoint: string
 }
 
-async function readConfig(): Promise<Config> {
-    const response = await fetch('/build/config.json');
+async function fetchConfig(): Promise<Config> {
+    const response = await fetch('/config.json');
     if (!response.ok) {
       throw new Error('Failed to fetch config.json');
     }
@@ -13,5 +13,5 @@ async function readConfig(): Promise<Config> {
   }
   
 
-export {readConfig};
+export { fetchConfig };
 

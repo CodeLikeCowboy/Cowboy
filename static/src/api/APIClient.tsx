@@ -1,16 +1,17 @@
 import axios, { AxiosInstance } from 'axios';
+import { Config } from 'config';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 class APIClient {
   private axiosInstance: AxiosInstance;
 
-  constructor() {  
-    console.log("ENDPOINT: ", process.env.REACT_APP_COWBOY_API_ENDPOINT);
+  constructor(config: Config) {
+    console.log("Config: ", config.jwt_token, config.api_endpoint)
     this.axiosInstance = axios.create({
-      baseURL: process.env.REACT_APP_COWBOY_API_ENDPOINT,
+      baseURL: config.api_endpoint,
       headers: {
-        'Authorization': `Bearer ${process.env.REACT_APP_COWBOY_TOKEN}`
+        'Authorization': `Bearer ${config.jwt_token}`
       }
     });
   
