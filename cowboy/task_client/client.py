@@ -78,15 +78,19 @@ class BGClient:
 
     def start_polling(self):
         while True:
-            task_res = self.api_client.poll()
-            if task_res:
-                task_log.info(f"Receieved {len(task_res)} tasks from server")
-                for t in task_res:
-                    task = RunTestTaskClient(**t, **t["task_args"])
-                    self.curr_t.append(task.task_id)
+            try:
+                task_res = self.api_client.poll()
+                if task_res:
+                    task_log.info(f"Receieved {len(task_res)} tasks from server")
+                    for t in task_res:
+                        task = RunTestTaskClient(**t, **t["task_args"])
+                        self.curr_t.append(task.task_id)
+                        threading.Thread(target=self.run_task, args=(task,)).start()
 
-                    # self.run_task(task)
-                    threading.Thread(target=self.run_task, args=(task,)).start()
+            # These errors result from how we handle server restarts
+            # and our janky non-db auth method so can just ignore
+            except (TypeError, ConnectionError):
+                pass
 
             time.sleep(1.0)  # Poll every 'interval' second
 
@@ -100,11 +104,6 @@ class BGClient:
             cov_res, *_ = runner.run_testsuite(task.task_args)
             task.result = TaskResult(**cov_res.to_dict())
             self.complete_task(task)
-
-        # These errors result from how we handle server restarts
-        # and our janky non-db auth method so can just ignore
-        except (TypeError, ConnectionError):
-            pass
 
         except Exception as e:
             task.result = TaskResult(exception=str(e))
