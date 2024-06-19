@@ -6,7 +6,7 @@ db = Database()
 api = APIClient(db)
 
 
-def api_build_tm_mapping(repo_name, mode, files, tms):
+def api_baseline(repo_name, mode, files, tms):
     """
     Builds the test module to source file mapping for each selected
     test module

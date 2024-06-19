@@ -5,11 +5,7 @@ import json
 
 from cowboy.repo.models import RepoConfig, RepoConfigRepository, PythonConf
 from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
-from cowboy.api_cmds import (
-    api_build_tm_mapping,
-    api_augment,
-    api_register,
-)
+from cowboy.api_cmds import api_baseline, api_augment, api_register, api_get_tms
 from cowboy.task_client import Manager
 from cowboy.browser import serve_ui
 from cowboy.exceptions import CowboyClientError
@@ -19,7 +15,6 @@ from cowboy.db.core import Database
 from cowboy.db.public import init_react_env_vars
 from cowboy.http import APIClient, InternalServerError
 
-# yeah global scope, sue me
 db = Database()
 api = APIClient(db)
 rc_repo = RepoConfigRepository(db)
@@ -48,7 +43,7 @@ def cowboy_user():
     pass
 
 
-# TODO: should we make initialization a user dialogue instead?
+# TODO: make initialization user dialogue instead
 @cowboy_user.command("init")
 def init():
     """Initializes user account for Cowboy."""
@@ -101,8 +96,6 @@ def reset():
     for repo in db.get("repos", []):
         delete_cloned_folders(Path(config.REPO_ROOT), repo)
 
-    # TODO: currently running into server error when deleting user from DB
-    # due to table cascade issues
     try:
         api.get(f"/user/delete")
     except InternalServerError:
@@ -110,15 +103,6 @@ def reset():
 
     db.reset()
     click.secho("Successfully reset user data", fg="green")
-
-
-# @cowboy_cli.command("login")
-# @click.argument("email")
-# @click.argument("password")
-# def login(email, password):
-#     _, status = api.post("/login", {"email": email, "password": password})
-#     if status == 200:
-#         click.secho("Successfully logged in", fg="green")
 
 
 @cowboy_cli.group("repo")
@@ -198,53 +182,49 @@ def delete(repo_name):
 @cowboy_repo.command("augment")
 @click.argument("repo_name")
 @click.option("--mode", default="auto")
-@click.option("--files", required=False, multiple=True)
-@click.option("--tms", required=False, multiple=True)
-def augment(repo_name, mode, files, tms):
+# NOTE: currently not supported for now
+# @click.option("--files", required=False, multiple=True)
+@click.option("--tm", required=False, multiple=True)
+def augment(repo_name, mode, files, tm):
     """
     Augments existing test modules with new test cases
     """
+    # for grammars sake..
+    tms = tm
+
     # TODO: we should allow both files and tms at same time
     if files and tms:
         raise Exception("Cannot specify both files and tms")
-    elif files:
-        mode = "file"
+    # elif files:
+    #     mode = "file"
     elif tms:
         mode = "module"
-    # this is the "first-time user" mode so we run build_mapping beforehand
     elif mode == "auto":
         if files or tms:
             raise Exception("Cannot specify file or tms when mode=auto")
-        api_build_tm_mapping(repo_name, mode, [], [])
     elif not files and not tms:
         mode = "all"
 
+    # NOTE: might need to expose baseline command manually to user
+    api_baseline(repo_name, mode, files, tms)
     session_id = api_augment(repo_name, mode, files, tms)
     serve_ui(session_id)
 
 
-@cowboy_repo.command("build_mapping")
+@cowboy_repo.command("get_tms")
 @click.argument("repo_name")
-@click.option("--mode", default="auto")
-@click.option("--files", required=False, multiple=True)
-@click.option("--tms", required=False, multiple=True)
-def build_tm_mapping(repo_name, mode, files, tms):
+def get_tms(repo_name):
     """
-    Builds test module to source mapping
+    Gets all test_modules for a given repo
     """
-    # TODO: we should allow both files and tms at same time
-    if files and tms:
-        raise Exception("Cannot specify both files and tms")
-    elif files:
-        mode = "file"
-    elif tms:
-        mode = "module"
-    # this is the "first-time user" mode so we run build_mapping beforehand
-    elif not files and not tms:
-        mode = "all"
+    tms = api_get_tms(repo_name)
+    for tm in tms:
+        print("TestModule: ", tm["name"])
+        print("TestFile: ", tm["filepath"])
+        for i, unit_test in enumerate(tm["unit_tests"], start=1):
+            print(f"{i}. {unit_test}")
 
-    api_build_tm_mapping(repo_name, mode, files, tms)
-    # api_build_tm_mapping(repo_name, "module", [], ["TestBitrise"])
+        print("\n")
 
 
 @cowboy_cli.command("browser")

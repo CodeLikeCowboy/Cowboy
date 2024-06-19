@@ -75,10 +75,13 @@ class LockedRepos:
     def acquire_one(self) -> Tuple[Path, GitRepo]:
         path, git_repo = self.queue.get()  # This will block if the queue is empty
 
+        task_log.info(f"Acquired repo: {path}")
         try:
             yield (path, git_repo)
         finally:
             self.release((path, git_repo))
+
+            task_log.info(f"Released repo: {path}")
 
     def release(self, path_n_git: Tuple[Path, GitRepo]):
         self.queue.put(path_n_git)  # Return the repo back to the queue
@@ -258,7 +261,7 @@ class PytestDiffRunner:
             patch_file = args.patch_file
             if patch_file:
                 patch_file.path = cloned_path / patch_file.path
-                task_log(f"Using patch file: {patch_file.path}")
+                task_log.info(f"Using patch file: {patch_file.path}")
 
             exclude_tests = args.exclude_tests
             include_tests = args.include_tests
@@ -271,7 +274,7 @@ class PytestDiffRunner:
             include_tests = self._get_include_tests_arg_str(include_tests)
             cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
 
-            task_log(f"Running with command: {cmd_str}")
+            task_log.info(f"Running with command: {cmd_str}")
 
             with PatchFileContext(git_repo, patch_file):
                 proc = subprocess.Popen(
@@ -286,7 +289,7 @@ class PytestDiffRunner:
                 if stderr:
                     raise TestSuiteError(stderr)
 
-                # read coverage
+                # read pycoverage result
                 with open(cloned_path / COVERAGE_FILE, "r") as f:
                     coverage_json = json.loads(f.read())
                     cov = CoverageResult(stdout, stderr, coverage_json)
@@ -295,4 +298,54 @@ class PytestDiffRunner:
             cov,
             stdout,
             stderr,
+        )
+
+    def fake_test_suite(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
+        import time
+        import random
+
+        with self.test_repos.acquire_one() as repo_inst:
+            print(f"Acquired repo: {repo_inst}")
+            cloned_path, git_repo = repo_inst
+
+            patch_file = args.patch_file
+            if patch_file:
+                patch_file.path = cloned_path / patch_file.path
+                task_log.info(f"Using patch file: {patch_file.path}")
+
+            exclude_tests = args.exclude_tests
+            include_tests = args.include_tests
+
+            env = os.environ.copy()
+            if self.python_path:
+                env["PYTHONPATH"] = self.python_path
+
+            exclude_tests = self._get_exclude_tests_arg_str(exclude_tests, cloned_path)
+            include_tests = self._get_include_tests_arg_str(include_tests)
+            cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
+            print(f"Running with command: {cmd_str}")
+
+            with PatchFileContext(git_repo, patch_file):
+                time.sleep(random.randint(1, 10))
+                # proc = subprocess.Popen(
+                #     cmd_str,
+                #     # env=env,
+                #     stdout=subprocess.PIPE,
+                #     stderr=subprocess.PIPE,
+                #     shell=True,
+                #     text=True,
+                # )
+                # stdout, stderr = proc.communicate()
+                # if stderr:
+                #     raise TestSuiteError(stderr)
+
+                # # read pycoverage result
+                # with open(cloned_path / COVERAGE_FILE, "r") as f:
+                #     coverage_json = json.loads(f.read())
+                #     cov = CoverageResult(stdout, stderr, coverage_json)
+
+        return (
+            None,
+            "",
+            "",
         )
