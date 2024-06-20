@@ -1,21 +1,18 @@
-import threading
-import time
-
 from cowboy.config import TASK_ENDPOINT
 from cowboy.runner.python import PytestDiffRunner
 from cowboy.db.core import Database
 from cowboy.repo.models import RepoConfig
 from cowboy.http import APIClient
 from cowboy.logger import task_log
+from cowboy_lib.api.runner.shared import RunTestTaskArgs, Task, TaskResult, TaskType
 
-from cowboy_lib.api.runner.shared import RunTestTaskClient, TaskResult
-
-import json
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from datetime import datetime
 from pathlib import Path
-
+import threading
+import time
+import json
 from requests import ConnectionError
 
 
@@ -83,9 +80,14 @@ class BGClient:
                 if task_res:
                     task_log.info(f"Receieved {len(task_res)} tasks from server")
                     for t in task_res:
-                        task = RunTestTaskClient(**t, **t["task_args"])
-                        self.curr_t.append(task.task_id)
-                        threading.Thread(target=self.run_task, args=(task,)).start()
+                        if t["type"] == TaskType.RUN_TEST:
+                            print("Task: ", t)
+                            task = Task(
+                                **t,
+                                task_args=RunTestTaskArgs.from_json(**t["task_args"]),
+                            )
+                            self.curr_t.append(task.task_id)
+                            threading.Thread(target=self.run_task, args=(task,)).start()
 
             # These errors result from how we handle server restarts
             # and our janky non-db auth method so can just ignore
@@ -94,7 +96,7 @@ class BGClient:
 
             time.sleep(1.0)  # Poll every 'interval' second
 
-    def run_task(self, task: RunTestTaskClient):
+    def run_task(self, task: Task):
         """
         Runs task and updates its result field when finished
         """
@@ -110,7 +112,7 @@ class BGClient:
             self.complete_task(task)
             task_log.error(f"Exception from runner: {e} : {type(e).__name__}")
 
-    def complete_task(self, task: RunTestTaskClient):
+    def complete_task(self, task: Task):
         # Note: json() actually converts nested objects, unlike dict
         self.api_client.post(f"/task/complete", json.loads(task.json()))
 

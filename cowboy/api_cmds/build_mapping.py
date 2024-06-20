@@ -18,6 +18,7 @@ def api_baseline(repo_name, mode, files, tms):
             "mode": mode,
             "tms": tms,
             "files": files,
-            "overwrite": False,
+            # TODO: change this to False
+            "overwrite": True,
         },
     )
