@@ -12,7 +12,6 @@ from cowboy.db.core import Database
 from cowboy.utils import gen_random_name
 
 from cowboy.repo.models import RepoConfig
-from cowboy.repo.runner import PytestDiffRunner
 
 ALL_REPO_CONF = "src/config"
 NUM_CLONES = 2

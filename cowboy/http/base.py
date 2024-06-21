@@ -46,13 +46,30 @@ class APIClient:
         self.server = API_ENDPOINT
         self.db = db
 
-        # user auth token
-        self.token = self.db.get("token", "")
-        self.headers = {"Authorization": f"Bearer {self.token}"}
-        self.auth_token = None
+        # secondary auth token for our janky poll auth
+        self.pauth_token = None
 
         # polling state
         self.encountered_401s = 0
+
+    def headers(self):
+        token = self.db.get("token", "")
+        headers = {"Authorization": f"Bearer {token}"}
+
+        return headers
+
+    def get(self, uri: str):
+        url = urljoin(self.server, uri)
+
+        res = requests.get(url, headers=self.headers())
+
+        return self.parse_response(res)
+
+    def post(self, uri: str, data: dict):
+        url = urljoin(self.server, uri)
+        res = requests.post(url, json=data, headers=self.headers())
+
+        return self.parse_response(res)
 
     def poll(self):
         """
@@ -60,23 +77,23 @@ class APIClient:
         this method differently than others is because we require some pretty
         janky logic -> basically an alternative auth token
         """
-        headers = self.headers.copy()
-        if self.auth_token:
-            headers.update({"x-task-auth": self.auth_token})
+        headers = self.headers()
+        if self.pauth_token:
+            headers.update({"x-task-auth": self.pauth_token})
 
         url = urljoin(self.server, "/task/get")
         res = requests.get(url, headers=headers)
 
         task_token = res.headers.get("set-x-task-auth", None)
         if task_token:
-            self.auth_token = task_token
+            self.pauth_token = task_token
 
         # next two conds are used to detect when the server restarts
-        if self.auth_token and res.status_code == 401:
+        if self.pauth_token and res.status_code == 401:
             self.encountered_401s += 1
 
         if self.encountered_401s > 3:
-            self.auth_token = None
+            self.pauth_token = None
             self.encountered_401s = 0
 
         return res.json()
@@ -90,23 +107,19 @@ class APIClient:
         """
         return start_daemon(self.post, (uri, data))
 
-    def get(self, uri: str):
-        url = urljoin(self.server, uri)
-
-        res = requests.get(url, headers=self.headers)
-
-        return self.parse_response(res)
-
-    def post(self, uri: str, data: dict):
-        url = urljoin(self.server, uri)
-        res = requests.post(url, json=data, headers=self.headers)
-
-        return self.parse_response(res)
+    def long_get(self, uri: str):
+        """
+        Need this method to handle long requests, because requests consume
+        all sigints while waiting for the response to return, we have to wrap
+        it in a new thread and use is_alive/join(timeout) to allow the sigint
+        to reach the main thread
+        """
+        return start_daemon(self.get, (uri,))
 
     def delete(self, uri: str):
         url = urljoin(self.server, uri)
 
-        res = requests.delete(url, headers=self.headers)
+        res = requests.delete(url, headers=self.headers())
 
         return self.parse_response(res)
 

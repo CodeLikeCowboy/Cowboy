@@ -93,7 +93,7 @@ def update_oai(openai_api_key):
 @cowboy_user.command("reset")
 def reset():
     """Resets user account for Cowboy ."""
-    api.get(f"/user/delete")
+    api.long_get(f"/user/delete")
 
     for repo in db.get("repos", []):
         delete_cloned_folders(Path(config.REPO_ROOT), repo)

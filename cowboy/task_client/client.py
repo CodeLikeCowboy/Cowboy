@@ -7,14 +7,19 @@ from cowboy.logger import task_log
 from cowboy_lib.api.runner.shared import RunTestTaskArgs, Task, TaskResult, TaskType
 
 from concurrent.futures import ThreadPoolExecutor
-from threading import Lock
 from datetime import datetime
 from pathlib import Path
 import threading
+import _thread
 import time
 import json
 from requests import ConnectionError
 import traceback
+import os
+
+
+class ShutdownSignal(Exception):
+    pass
 
 
 class BGClient:
@@ -25,14 +30,15 @@ class BGClient:
 
     def __init__(
         self,
-        api_client: APIClient,
+        api: APIClient,
         fetch_endpoint: str,
         heart_beat_fp: Path,
         heart_beat_interval: int = 5,
         sleep_interval=5,
     ):
+        self.api = api
+        self.db = db
         self.run_executor = ThreadPoolExecutor(max_workers=5)
-        self.api_client = api_client
         self.fetch_endpoint = fetch_endpoint
 
         # each repo has one runner
@@ -44,7 +50,7 @@ class BGClient:
         self.completed = 0
 
         # retrieved tasks
-        self.lock = Lock()
+        self.lock = threading.Lock()
         self.retrieved_t = []
         self.start_t = []
 
@@ -67,7 +73,7 @@ class BGClient:
         if runner:
             return runner
 
-        repo_conf = self.api_client.get(f"/repo/get/{repo_name}")
+        repo_conf = self.api.get(f"/repo/get/{repo_name}")
         repo_conf = RepoConfig(**repo_conf)
         runner = PytestDiffRunner(repo_conf)
         self.runners[repo_name] = runner
@@ -76,32 +82,42 @@ class BGClient:
 
     def start_polling(self):
         """
-        Polls server and receive tasks. Currently only two types:
+        Polls server and receive tasks. Currently only two types:'cowboy.repo.runner'
         1. Run Test -> runs in separate thread
         2. Shutdown -> shutdown client immediately
         """
         while True:
             try:
-                task_res = self.api_client.poll()
+                task_res = self.api.poll()
                 if task_res:
                     task_log.info(f"Receieved {len(task_res)} tasks from server")
                     for t in task_res:
-                        if t["type"] == TaskType.RUN_TEST:
+                        task_type = t["type"]
+                        task_log.info(f"Received task: {t}")
+                        if task_type == TaskType.RUN_TEST:
                             task = Task(**t)
                             task.task_args = RunTestTaskArgs.from_json(**t["task_args"])
                             self.curr_t.append(task.task_id)
+
                             threading.Thread(
                                 target=self.run_test_thread, args=(task,)
                             ).start()
 
-                        elif t["type"] == TaskType.SHUTDOWN:
+                        elif task_type == TaskType.SHUTDOWN:
+                            task_log.info(f"Received shutdown signal")
                             self.complete_task(Task(**t))
-                            sys.exit()
+                            # sends sigint to main thread
+                            _thread.interrupt_main()
+
+            except ConnectionError as e:
+                task_log.error("Error connecting to server ...")
 
             # These errors result from how we handle server restarts
             # and our janky non-db auth method so can just ignore
-            except (TypeError, ConnectionError) as e:
-                pass
+            except Exception as e:
+                task_log.error(
+                    f"Exception from client: {e} : {type(e).__name__}\n{traceback.format_exc()}"
+                )
 
             time.sleep(1.0)  # Poll every 'interval' second
 
@@ -111,6 +127,7 @@ class BGClient:
         """
         try:
             task_log.info(f"Starting task: {task.task_id}")
+
             runner = self.get_runner(task.task_args.repo_name)
             cov_res, *_ = runner.run_testsuite(task.task_args)
             task.result = TaskResult(**cov_res.to_dict())
@@ -125,9 +142,7 @@ class BGClient:
             )
 
     def complete_task(self, task: Task):
-        # Note: json() actually converts nested objects, unlike dict
-        self.api_client.post(f"/task/complete", json.loads(task.json()))
-
+        self.api.post(f"/task/complete", json.loads(task.json()))
         # with self.lock:
         #     self.curr_t.remove(task.task_id)
         #     self.completed += 1
@@ -169,11 +184,6 @@ if __name__ == "__main__":
         console_handler.setFormatter(file_formatter)
         return console_handler
 
-    # dont actually use the db here, its needed as a dep for APIClient (rethink this)
-    # but we dont want to mess with local db state from this code
-    db = Database()
-    api = APIClient(db)
-
     if len(sys.argv) < 3:
         task_log.info(
             "Usage: python client.py <heartbeat_file> <heartbeat_interval> <console>"
@@ -187,8 +197,9 @@ if __name__ == "__main__":
     if console:
         task_log.addHandler(get_console_handler())
 
+    db = Database()
+    api = APIClient(db)
     BGClient(api, TASK_ENDPOINT, hb_path, hb_interval)
-
     # keep main thread alive so we can terminate all threads via sys interrupt
     # (because main thread is the only one we can send signals to)
     while True:
