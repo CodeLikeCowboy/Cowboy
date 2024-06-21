@@ -12,6 +12,16 @@
             "args": ["repo", "baseline", "test2"],
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "Run Client",
+            "type": "python",
+            "request": "launch",
+            "module": "cowboy.task_client.client",
+            "args": [".heartbeat", "2", "true"],
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
+
     ]
 }

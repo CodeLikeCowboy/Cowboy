@@ -15,9 +15,7 @@ class AugmentTestMode(str, Enum):
     ALL = "all"
 
 
-def api_augment(
-    repo_name: str, mode: str = "auto", files: List[str] = [], tms: str = ""
-):
+def api_augment(repo_name: str, mode: str = "auto", tms: str = ""):
     """
     Augments existing test modules with new test cases
     """
@@ -32,7 +30,7 @@ def api_augment(
             "repo_name": repo_name,
             "mode": mode,
             "tms": tms,
-            "files": files,
+            "files": [],
         },
     )
 

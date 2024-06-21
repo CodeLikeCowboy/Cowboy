@@ -14,6 +14,7 @@ import threading
 import time
 import json
 from requests import ConnectionError
+import traceback
 
 
 class BGClient:
@@ -74,6 +75,11 @@ class BGClient:
         return runner
 
     def start_polling(self):
+        """
+        Polls server and receive tasks. Currently only two types:
+        1. Run Test -> runs in separate thread
+        2. Shutdown -> shutdown client immediately
+        """
         while True:
             try:
                 task_res = self.api_client.poll()
@@ -81,28 +87,31 @@ class BGClient:
                     task_log.info(f"Receieved {len(task_res)} tasks from server")
                     for t in task_res:
                         if t["type"] == TaskType.RUN_TEST:
-                            print("Task: ", t)
-                            task = Task(
-                                **t,
-                                task_args=RunTestTaskArgs.from_json(**t["task_args"]),
-                            )
+                            task = Task(**t)
+                            task.task_args = RunTestTaskArgs.from_json(**t["task_args"])
                             self.curr_t.append(task.task_id)
-                            threading.Thread(target=self.run_task, args=(task,)).start()
+                            threading.Thread(
+                                target=self.run_test_thread, args=(task,)
+                            ).start()
+
+                        elif t["type"] == TaskType.SHUTDOWN:
+                            self.complete_task(Task(**t))
+                            sys.exit()
 
             # These errors result from how we handle server restarts
             # and our janky non-db auth method so can just ignore
-            except (TypeError, ConnectionError):
+            except (TypeError, ConnectionError) as e:
                 pass
 
             time.sleep(1.0)  # Poll every 'interval' second
 
-    def run_task(self, task: Task):
+    def run_test_thread(self, task: Task):
         """
         Runs task and updates its result field when finished
         """
         try:
             task_log.info(f"Starting task: {task.task_id}")
-            runner = self.get_runner(task.repo_name)
+            runner = self.get_runner(task.task_args.repo_name)
             cov_res, *_ = runner.run_testsuite(task.task_args)
             task.result = TaskResult(**cov_res.to_dict())
             self.complete_task(task)
@@ -110,7 +119,10 @@ class BGClient:
         except Exception as e:
             task.result = TaskResult(exception=str(e))
             self.complete_task(task)
-            task_log.error(f"Exception from runner: {e} : {type(e).__name__}")
+
+            task_log.error(
+                f"Exception from runner: {e} : {type(e).__name__}\n{traceback.format_exc()}"
+            )
 
     def complete_task(self, task: Task):
         # Note: json() actually converts nested objects, unlike dict

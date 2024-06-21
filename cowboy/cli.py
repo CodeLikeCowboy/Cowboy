@@ -93,13 +93,10 @@ def update_oai(openai_api_key):
 @cowboy_user.command("reset")
 def reset():
     """Resets user account for Cowboy ."""
+    api.get(f"/user/delete")
+
     for repo in db.get("repos", []):
         delete_cloned_folders(Path(config.REPO_ROOT), repo)
-
-    try:
-        api.get(f"/user/delete")
-    except InternalServerError:
-        pass
 
     db.reset()
     click.secho("Successfully reset user data", fg="green")
@@ -181,33 +178,25 @@ def delete(repo_name):
 
 @cowboy_repo.command("augment")
 @click.argument("repo_name")
-@click.option("--mode", default="auto")
+@click.option("--mode", required=False)
 # NOTE: currently not supported for now
 # @click.option("--files", required=False, multiple=True)
 @click.option("--tm", required=False, multiple=True)
-def augment(repo_name, mode, files, tm):
+def augment(repo_name, mode, tm):
     """
     Augments existing test modules with new test cases
     """
     # for grammars sake..
     tms = tm
 
-    # TODO: we should allow both files and tms at same time
-    if files and tms:
-        raise Exception("Cannot specify both files and tms")
-    # elif files:
-    #     mode = "file"
-    elif tms:
+    if tms:
         mode = "module"
-    elif mode == "auto":
-        if files or tms:
-            raise Exception("Cannot specify file or tms when mode=auto")
-    elif not files and not tms:
-        mode = "all"
+    elif mode == "auto" and tms:
+        raise Exception("Cannot specify file or tms when mode=auto")
 
     # NOTE: might need to expose baseline command manually to user
-    api_baseline(repo_name, mode, files, tms)
-    session_id = api_augment(repo_name, mode, files, tms)
+    api_baseline(repo_name, mode, tms)
+    session_id = api_augment(repo_name, mode, tms)
     serve_ui(session_id)
 
 

@@ -6,7 +6,7 @@ db = Database()
 api = APIClient(db)
 
 
-def api_baseline(repo_name, mode, files, tms):
+def api_baseline(repo_name, mode, tms):
     """
     Builds the test module to source file mapping for each selected
     test module
@@ -17,7 +17,7 @@ def api_baseline(repo_name, mode, files, tms):
             "repo_name": repo_name,
             "mode": mode,
             "tms": tms,
-            "files": files,
+            "files": [],
             # TODO: change this to False
             "overwrite": True,
         },
