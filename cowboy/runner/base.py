@@ -10,13 +10,14 @@ class TestSuiteError(Exception):
     Stderr from the subprocess that runs the lang/framework unit test suite
     """
 
-    def __init__(self, stderr: str):
+    def __init__(self, stderr: str, cloned_path: str):
         super().__init__(stderr)
         self.stderr = stderr
+        self.cloned_path = cloned_path
 
     # Not actually used for some reason
     def __str__(self):
-        return "TestSuit Error: " + self.stderr
+        return f"TestSuiteError: ({self.cloned_path}) " + self.stderr
 
 
 class Runner(ABC):

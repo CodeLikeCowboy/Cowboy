@@ -126,6 +126,9 @@ class PytestDiffRunner:
         self.interpreter = Path(repo_conf.python_conf.interp)
         self.python_path = Path(repo_conf.python_conf.pythonpath)
 
+        if not self.interpreter.exists():
+            raise RunnerError(f"Runtime path {self.interpreter} does not exist")
+
         deps = self.check_deps_installed(self.interpreter)
         if not deps:
             raise RunnerError(f"pytest-cov is not installed in {self.interpreter}")
@@ -287,7 +290,7 @@ class PytestDiffRunner:
                 )
                 stdout, stderr = proc.communicate()
                 if stderr:
-                    raise TestSuiteError(stderr)
+                    raise TestSuiteError(stderr, str(cloned_path))
 
                 # read pycoverage result
                 with open(cloned_path / COVERAGE_FILE, "r") as f:
@@ -300,52 +303,54 @@ class PytestDiffRunner:
             stderr,
         )
 
-    def fake_test_suite(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
-        import time
-        import random
+    # NOTE: keep this around, there is still that race condition bug we need
+    # to find
+    # def fake_test_suite(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
+    #     import time
+    #     import random
 
-        with self.test_repos.acquire_one() as repo_inst:
-            print(f"Acquired repo: {repo_inst}")
-            cloned_path, git_repo = repo_inst
+    #     with self.test_repos.acquire_one() as repo_inst:
+    #         print(f"Acquired repo: {repo_inst}")
+    #         cloned_path, git_repo = repo_inst
 
-            patch_file = args.patch_file
-            if patch_file:
-                patch_file.path = cloned_path / patch_file.path
-                task_log.info(f"Using patch file: {patch_file.path}")
+    #         patch_file = args.patch_file
+    #         if patch_file:
+    #             patch_file.path = cloned_path / patch_file.path
+    #             task_log.info(f"Using patch file: {patch_file.path}")
 
-            exclude_tests = args.exclude_tests
-            include_tests = args.include_tests
+    #         exclude_tests = args.exclude_tests
+    #         include_tests = args.include_tests
 
-            env = os.environ.copy()
-            if self.python_path:
-                env["PYTHONPATH"] = self.python_path
+    #         env = os.environ.copy()
+    #         if self.python_path:
+    #             env["PYTHONPATH"] = self.python_path
 
-            exclude_tests = self._get_exclude_tests_arg_str(exclude_tests, cloned_path)
-            include_tests = self._get_include_tests_arg_str(include_tests)
-            cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
-            print(f"Running with command: {cmd_str}")
+    #         exclude_tests = self._get_exclude_tests_arg_str(exclude_tests, cloned_path)
+    #         include_tests = self._get_include_tests_arg_str(include_tests)
+    #         cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
+    #         print(f"Running with command: {cmd_str}")
 
-            with PatchFileContext(git_repo, patch_file):
-                time.sleep(random.randint(1, 10))
-                # proc = subprocess.Popen(
-                #     cmd_str,
-                #     # env=env,
-                #     stdout=subprocess.PIPE,
-                #     stderr=subprocess.PIPE,
-                #     shell=True,
-                #     text=True,
-                # )
-                # stdout, stderr = proc.communicate()
-                # if stderr:
-                #     raise TestSuiteError(stderr)
+    #         with PatchFileContext(git_repo, patch_file):
+    #             time.sleep(random.randint(1, 10))
+    #             # proc = subprocess.Popen(
+    #             #     cmd_str,
+    #             #     # env=env,
+    #             #     stdout=subprocess.PIPE,
+    #             #     stderr=subprocess.PIPE,
+    #             #     shell=True,
+    #             #     text=True,
+    #             # )
+    #             # stdout, stderr = proc.communicate()
+    #             # if stderr:
+    #             #     raise TestSuiteError(stderr)
 
-                # # read pycoverage result
-                # with open(cloned_path / COVERAGE_FILE, "r") as f:
-                #     coverage_json = json.loads(f.read())
-                #     cov = CoverageResult(stdout, stderr, coverage_json)
+    #             # # read pycoverage result
+    #             # with open(cloned_path / COVERAGE_FILE, "r") as f:
+    #             #     coverage_json = json.loads(f.read())
+    #             #     cov = CoverageResult(stdout, stderr, coverage_json)
 
-        return (
-            None,
-            "",
-            "",
-        )
+    #     return (
+    #         None,
+    #         "",
+    #         "",
+    #     )

@@ -1,0 +1,5 @@
+# TODO: write comments on each of these fields to explain what they do
+repo_name: "requests"
+url: https://github.com/psf/requests.git
+cov_folders: ["requests"]
+interp: C:\Users\jpeng\AppData\Local\Microsoft\WindowsApps\python.exe

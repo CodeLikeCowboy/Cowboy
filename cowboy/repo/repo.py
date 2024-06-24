@@ -1,6 +1,4 @@
-from dataclasses import dataclass
 from pathlib import Path
-from collections import defaultdict
 import os
 import click
 import sys
@@ -50,12 +48,19 @@ def create_cloned_folders(
         click.secho("Repo already exists", fg="red")
         sys.exit()
 
-    if len(repo_conf.cloned_folders) < num_clones:
-        for i in range(num_clones - len(repo_conf.cloned_folders)):
-            cloned_path = clone_repo(repo_root, repo_conf.url, repo_conf.repo_name)
-            setuppy_init(repo_conf.repo_name, cloned_path, repo_conf.python_conf.interp)
+    clone_dir = repo_root / repo_conf.repo_name
+    if clone_dir.exists():
+        click.secho(
+            f"Cloned folder {str(repo_root / repo_conf.repo_name)} already exist, skipping creating anew ...",
+            fg="green",
+        )
+        return [str(f) for f in clone_dir.iterdir() if f.is_dir()]
 
-            cloned_folders.append(str(cloned_path))
+    for i in range(num_clones):
+        cloned_path = clone_repo(clone_dir, repo_conf.url)
+        setuppy_init(repo_conf.repo_name, cloned_path, repo_conf.python_conf.interp)
+
+        cloned_folders.append(str(cloned_path))
 
     return cloned_folders
 
@@ -81,11 +86,11 @@ def setuppy_init(repo_name: str, cloned_path: Path, interp: str):
     #     print(stderr)
 
 
-def clone_repo(repo_root: Path, repo_url: str, repo_name: str) -> Path:
+def clone_repo(clone_dir: Path, repo_url: str) -> Path:
     """
     Creates a clone of the repo locally
     """
-    dest_folder = repo_root / repo_name / gen_random_name()
+    dest_folder = clone_dir / gen_random_name()
     if dest_folder.exists():
         os.makedirs(dest_folder)
 

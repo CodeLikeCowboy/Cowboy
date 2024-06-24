@@ -15,11 +15,6 @@ import time
 import json
 from requests import ConnectionError
 import traceback
-import os
-
-
-class ShutdownSignal(Exception):
-    pass
 
 
 class BGClient:
@@ -40,9 +35,6 @@ class BGClient:
         self.db = db
         self.run_executor = ThreadPoolExecutor(max_workers=5)
         self.fetch_endpoint = fetch_endpoint
-
-        # each repo has one runner
-        self.runners = {}
 
         # curr tasks : technically dont need since we await every new
         # tasks via runner.acquire_one() but use for debugging
@@ -69,14 +61,9 @@ class BGClient:
         """
         Initialize or retrieve an existing runner for Repo
         """
-        runner = self.runners.get(repo_name, "")
-        if runner:
-            return runner
-
         repo_conf = self.api.get(f"/repo/get/{repo_name}")
         repo_conf = RepoConfig(**repo_conf)
         runner = PytestDiffRunner(repo_conf)
-        self.runners[repo_name] = runner
 
         return runner
 

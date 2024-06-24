@@ -149,12 +149,17 @@ def repo_init(config_path):
         print(json.dumps(repo_config.serialize(), indent=4))
         click.secho("Successfully created repo: {}".format(repo_name), fg="green")
 
-    # should we differentiate between timeout/requests.exceptions.ConnectionError?
     except Exception as e:
-        click.secho(f"Repo creation failed on server: {e}", fg="red")
+        error_message = str(e)
+        click.secho(f"Repo creation failed on server: {error_message}", fg="red")
         click.secho(f"Rolling back repo creation", fg="red")
 
         db.delete_from_list("repos", repo_name)
+
+        # leave cloned folders alone for debugging TestSuiteError
+        if "TestSuiteError" in error_message:
+            return
+
         delete_cloned_folders(Path(config.REPO_ROOT), repo_name)
         return
 
@@ -198,6 +203,28 @@ def augment(repo_name, mode, tm):
     api_baseline(repo_name, mode, tms)
     session_id = api_augment(repo_name, mode, tms)
     serve_ui(session_id)
+
+
+@cowboy_repo.command("baseline")
+@click.argument("repo_name")
+@click.option("--mode", required=False)
+# NOTE: currently not supported for now
+# @click.option("--files", required=False, multiple=True)
+@click.option("--tm", required=False, multiple=True)
+def augment(repo_name, mode, tm):
+    """
+    Augments existing test modules with new test cases
+    """
+    # for grammars sake..
+    tms = tm
+
+    if tms:
+        mode = "module"
+    elif mode == "auto" and tms:
+        raise Exception("Cannot specify file or tms when mode=auto")
+
+    # NOTE: might need to expose baseline command manually to user
+    api_baseline(repo_name, mode, tms)
 
 
 @cowboy_repo.command("get_tms")

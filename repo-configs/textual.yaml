@@ -1,0 +1,4 @@
+repo_name: textual
+url: "https://github.com/Textualize/textual"
+cov_folders: ["src"]
+interp: "C:\\Users\\jpeng\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\\LocalCache\\Local\\pypoetry\\Cache\\virtualenvs\\textual-VdENmI6k-py3.10\\Scripts\\python.exe"

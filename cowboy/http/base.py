@@ -135,10 +135,9 @@ class APIClient:
 
         elif res.status_code == 400 or res.status_code == 422:
             message = res.json()["detail"]
-            try:
+
+            if isinstance(message, (dict, list)):
                 message = json.dumps(message, indent=2)
-            except json.JSONDecodeError:
-                pass
 
             raise CowboyClientError(message)
 

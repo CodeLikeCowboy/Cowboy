@@ -10,6 +10,14 @@ class PythonConf(BaseModel):
     test_folder: Optional[str]
     pythonpath: Optional[str]
 
+    @validator("interp")
+    def validate_interp(cls, v):
+        import os
+
+        if not os.path.exists(v):
+            raise ValueError(f"Interpreter path {v} does not exist")
+        return v
+
 
 class RepoConfig(BaseModel):
     repo_name: str  # of form owner_repo
