@@ -4,7 +4,8 @@ from cowboy_lib.api.runner.shared import RunTestTaskArgs, FunctionArg
 from cowboy.repo.models import RepoConfig
 from cowboy.exceptions import CowboyClientError
 from cowboy.logger import task_log
-from .base import TestSuiteError
+
+from .base import RunnerError, TestSuiteError
 
 import os
 import subprocess
@@ -19,10 +20,6 @@ TestError = NewType("TestError", str)
 
 
 class DiffFileCreation(Exception):
-    pass
-
-
-class RunnerError(Exception):
     pass
 
 
@@ -129,9 +126,9 @@ class PytestDiffRunner:
         if not self.interpreter.exists():
             raise RunnerError(f"Runtime path {self.interpreter} does not exist")
 
-        deps = self.check_deps_installed(self.interpreter)
-        if not deps:
-            raise RunnerError(f"pytest-cov is not installed in {self.interpreter}")
+        missing = self.check_missing_deps(self.interpreter)
+        if missing:
+            raise RunnerError(f"{missing}")
 
         self.cloned_folders = [Path(p) for p in repo_conf.cloned_folders]
         self.cov_folders = [Path(p) for p in repo_conf.python_conf.cov_folders]
@@ -149,11 +146,12 @@ class PytestDiffRunner:
 
         self.test_suite = test_suite
 
-    def check_deps_installed(self, interp):
+    def check_missing_deps(self, interp) -> List[bool]:
         """
         Check if test depdencies are installed in the interpreter
         """
-        deps = ["pytest-cov"]
+        installed = []
+        deps = ["pytest-cov", "pytest"]
         try:
             for dep in deps:
                 result = subprocess.run(
@@ -162,12 +160,19 @@ class PytestDiffRunner:
                     text=True,
                 )
                 if result.returncode != 0:
-                    return False
+                    installed.append((dep, False))
+                else:
+                    installed.append((dep, True))
 
         except (subprocess.CalledProcessError, FileNotFoundError):
-            return False
+            installed.append((dep, False))
 
-        return True
+        msg = (
+            f"The following deps are not installed: {[d[0] for d in installed if not d[1]]}"
+            if installed
+            else ""
+        )
+        return msg
 
     def verify_clone_dirs(self, cloned_dirs: List[Path]):
         """
@@ -289,13 +294,17 @@ class PytestDiffRunner:
                     text=True,
                 )
                 stdout, stderr = proc.communicate()
-                if stderr:
-                    raise TestSuiteError(stderr, str(cloned_path))
 
-                # read pycoverage result
-                with open(cloned_path / COVERAGE_FILE, "r") as f:
-                    coverage_json = json.loads(f.read())
-                    cov = CoverageResult(stdout, stderr, coverage_json)
+                # raise exception only no coverage
+                try:
+                    with open(cloned_path / COVERAGE_FILE, "r") as f:
+                        coverage_json = json.loads(f.read())
+                        cov = CoverageResult(stdout, stderr, coverage_json)
+                        if not cov.coverage:
+                            print("No coverage!")
+                            raise Exception()
+                except Exception:
+                    raise TestSuiteError(stderr, str(cloned_path), cmd_str)
 
         return (
             cov,

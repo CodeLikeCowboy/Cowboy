@@ -1,5 +1,5 @@
 from cowboy.config import TASK_ENDPOINT
-from cowboy.runner.python import PytestDiffRunner
+from cowboy.runner import PytestDiffRunner, RunnerError
 from cowboy.db.core import Database
 from cowboy.repo.models import RepoConfig
 from cowboy.http import APIClient
@@ -97,7 +97,8 @@ class BGClient:
                             _thread.interrupt_main()
 
             except ConnectionError as e:
-                task_log.error("Error connecting to server ...")
+                # task_log.error("Error connecting to server ...")
+                pass
 
             # These errors result from how we handle server restarts
             # and our janky non-db auth method so can just ignore
@@ -120,13 +121,11 @@ class BGClient:
             task.result = TaskResult(**cov_res.to_dict())
             self.complete_task(task)
 
-        except Exception as e:
+        except RunnerError as e:
             task.result = TaskResult(exception=str(e))
             self.complete_task(task)
 
-            task_log.error(
-                f"Exception from runner: {e} : {type(e).__name__}\n{traceback.format_exc()}"
-            )
+            task_log.error(f"Exception from runner: {e}\n{traceback.format_exc()}")
 
     def complete_task(self, task: Task):
         self.api.post(f"/task/complete", json.loads(task.json()))

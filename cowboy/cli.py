@@ -157,7 +157,7 @@ def repo_init(config_path):
         db.delete_from_list("repos", repo_name)
 
         # leave cloned folders alone for debugging TestSuiteError
-        if "TestSuiteError" in error_message:
+        if "RunnerError" in error_message:
             return
 
         delete_cloned_folders(Path(config.REPO_ROOT), repo_name)

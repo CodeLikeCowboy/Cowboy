@@ -2,4 +2,4 @@ repo_name: fastapi
 url: "https://github.com/tiangolo/fastapi"
 num_commits: 1
 cov_folders: ["fastapi"]
-interp: C:\Users\jpeng\AppData\Local\Microsoft\WindowsApps\python.exe
+interp: C:\Users\jpeng\.virtualenvs\fastapi-RzGj_Ddt\Scripts\python.exe
