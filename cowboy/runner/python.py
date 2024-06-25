@@ -150,7 +150,7 @@ class PytestDiffRunner:
         """
         Check if test depdencies are installed in the interpreter
         """
-        installed = []
+        not_installed = []
         deps = ["pytest-cov", "pytest"]
         try:
             for dep in deps:
@@ -160,19 +160,16 @@ class PytestDiffRunner:
                     text=True,
                 )
                 if result.returncode != 0:
-                    installed.append((dep, False))
-                else:
-                    installed.append((dep, True))
+                    not_installed.append(dep)
 
         except (subprocess.CalledProcessError, FileNotFoundError):
-            installed.append((dep, False))
+            not_installed.append(dep)
 
-        msg = (
-            f"The following deps are not installed: {[d[0] for d in installed if not d[1]]}"
-            if installed
+        return (
+            f"The following deps are not installed: {not_installed}"
+            if not_installed
             else ""
         )
-        return msg
 
     def verify_clone_dirs(self, cloned_dirs: List[Path]):
         """
