@@ -3,7 +3,6 @@ from cowboy_lib.coverage import CoverageResult
 from cowboy_lib.api.runner.shared import RunTestTaskArgs, FunctionArg
 from cowboy.repo.models import RepoConfig
 from cowboy.exceptions import CowboyClientError
-from cowboy.logger import task_log
 
 from .base import RunnerError, TestSuiteError
 
@@ -13,6 +12,10 @@ from typing import List, Tuple, NewType, Dict
 import json
 import hashlib
 from pathlib import Path
+
+from logging import getLogger
+
+log = getLogger(__name__)
 
 
 COVERAGE_FILE = "coverage.json"
@@ -62,26 +65,32 @@ class LockedRepos:
     A list of available repos for concurrent run_test invocations, managed as a FIFO queue
     """
 
-    def __init__(self, path_n_git: List[Tuple[Path, GitRepo]]):
-        self.capacity = len(path_n_git)
+    def __init__(self, cloned_folders: List[Path]):
+        self.capacity = len(cloned_folders)
         self.queue = queue.Queue()
-        for item in path_n_git:
-            self.queue.put(item)
+
+        for path in cloned_folders:
+            if not path.exists():
+                raise RunnerError(
+                    f"Cloned folder: {str(path)} does not exist, something went wrong. Try deleting and re-creating the repo"
+                )
+
+            self.queue.put(GitRepo(path))
 
     @contextmanager
-    def acquire_one(self) -> Tuple[Path, GitRepo]:
-        path, git_repo = self.queue.get()  # This will block if the queue is empty
+    def acquire_one(self) -> GitRepo:
+        git_repo: GitRepo = self.queue.get()  # This will block if the queue is empty
 
-        task_log.info(f"Acquired repo: {path}")
+        log.info(f"Acquired repo: {git_repo.repo_folder}")
         try:
-            yield (path, git_repo)
+            yield git_repo
         finally:
-            self.release((path, git_repo))
+            self.release(git_repo)
 
-            task_log.info(f"Released repo: {path}")
+            log.info(f"Released repo: {git_repo.repo_folder}")
 
-    def release(self, path_n_git: Tuple[Path, GitRepo]):
-        self.queue.put(path_n_git)  # Return the repo back to the queue
+    def release(self, git_repo: GitRepo):
+        self.queue.put(git_repo)  # Return the repo back to the queue
 
     def __len__(self):
         return self.queue.qsize()
@@ -106,11 +115,18 @@ def get_exclude_path(
 
 class PytestDiffRunner:
     """
-    Executes the test suite before and after a diff is applied,
-    and compares the results. Runs in two modes: full and selective.
-    In full mode, the full test suite is run.
-    In selective mode, only selected test cases.
+    Executes the test suite
     """
+
+    # _runner_instances = {}
+
+    # def __new__(cls, repo_conf: RepoConfig, test_suite: str = ""):
+    #     """
+    #     Retrieve or create an instance of PytestDiffRunner for the given repo_name.
+    #     """
+    #     if repo_conf.repo_name not in cls._runner_instances:
+    #         cls._runner_instances[repo_conf.repo_name] = object.__new__(cls)
+    #     return cls._runner_instances[repo_conf.repo_name]
 
     def __init__(
         self,
@@ -130,17 +146,10 @@ class PytestDiffRunner:
         if missing:
             raise RunnerError(f"{missing}")
 
-        self.cloned_folders = [Path(p) for p in repo_conf.cloned_folders]
         self.cov_folders = [Path(p) for p in repo_conf.python_conf.cov_folders]
+        cloned_folders = [Path(p) for p in repo_conf.cloned_folders]
+        self.test_repos = LockedRepos(cloned_folders)
 
-        self.test_repos = LockedRepos(
-            list(
-                zip(
-                    self.cloned_folders,
-                    [GitRepo(Path(p)) for p in repo_conf.cloned_folders],
-                )
-            )
-        )
         if len(self.test_repos) == 0:
             raise CowboyClientError("No cloned repos created, perhaps run init again?")
 
@@ -251,8 +260,8 @@ class PytestDiffRunner:
             f"--cov={'--cov='.join([str(folder) + ' ' for folder in self.cov_folders])}",
             "--cov-report",
             "json",
-            "--cov-report",
-            "term",
+            # "--cov-report",
+            # "term",
             "--continue-on-collection-errors",
             "--disable-warnings",
         ]
@@ -261,12 +270,12 @@ class PytestDiffRunner:
 
     def run_testsuite(self, args: RunTestTaskArgs) -> Tuple[CoverageResult, str, str]:
         with self.test_repos.acquire_one() as repo_inst:
-            cloned_path, git_repo = repo_inst
+            git_repo: GitRepo = repo_inst
 
             patch_file = args.patch_file
             if patch_file:
-                patch_file.path = cloned_path / patch_file.path
-                task_log.info(f"Using patch file: {patch_file.path}")
+                patch_file.path = git_repo.repo_folder / patch_file.path
+                log.info(f"Using patch file: {patch_file.path}")
 
             exclude_tests = args.exclude_tests
             include_tests = args.include_tests
@@ -275,11 +284,15 @@ class PytestDiffRunner:
             if self.python_path:
                 env["PYTHONPATH"] = self.python_path
 
-            exclude_tests = self._get_exclude_tests_arg_str(exclude_tests, cloned_path)
+            exclude_tests = self._get_exclude_tests_arg_str(
+                exclude_tests, git_repo.repo_folder
+            )
             include_tests = self._get_include_tests_arg_str(include_tests)
-            cmd_str = self._construct_cmd(cloned_path, include_tests, exclude_tests)
+            cmd_str = self._construct_cmd(
+                git_repo.repo_folder, include_tests, exclude_tests
+            )
 
-            task_log.info(f"Running with command: {cmd_str}")
+            log.info(f"Running with command: {cmd_str}")
 
             with PatchFileContext(git_repo, patch_file):
                 proc = subprocess.Popen(
@@ -294,14 +307,14 @@ class PytestDiffRunner:
 
                 # raise exception only no coverage
                 try:
-                    with open(cloned_path / COVERAGE_FILE, "r") as f:
+                    with open(git_repo.repo_folder / COVERAGE_FILE, "r") as f:
                         coverage_json = json.loads(f.read())
                         cov = CoverageResult(stdout, stderr, coverage_json)
                         if not cov.coverage:
                             print("No coverage!")
                             raise Exception()
                 except Exception:
-                    raise TestSuiteError(stderr, str(cloned_path), cmd_str)
+                    raise TestSuiteError(stderr, str(git_repo.repo_folder), cmd_str)
 
         return (
             cov,
@@ -322,7 +335,7 @@ class PytestDiffRunner:
     #         patch_file = args.patch_file
     #         if patch_file:
     #             patch_file.path = cloned_path / patch_file.path
-    #             task_log.info(f"Using patch file: {patch_file.path}")
+    #             log.info(f"Using patch file: {patch_file.path}")
 
     #         exclude_tests = args.exclude_tests
     #         include_tests = args.include_tests

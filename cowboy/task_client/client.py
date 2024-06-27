@@ -3,7 +3,6 @@ from cowboy.runner import PytestDiffRunner, RunnerError
 from cowboy.db.core import Database
 from cowboy.repo.models import RepoConfig
 from cowboy.http import APIClient
-from cowboy.logger import task_log
 from cowboy_lib.api.runner.shared import RunTestTaskArgs, Task, TaskResult, TaskType
 
 from concurrent.futures import ThreadPoolExecutor
@@ -15,6 +14,10 @@ import time
 import json
 from requests import ConnectionError
 import traceback
+
+from logging import getLogger
+
+log = getLogger(__name__)
 
 
 class BGClient:
@@ -41,6 +44,8 @@ class BGClient:
         self.curr_t = []
         self.completed = 0
 
+        self.runners = {}
+
         # retrieved tasks
         self.lock = threading.Lock()
         self.retrieved_t = []
@@ -59,11 +64,22 @@ class BGClient:
 
     def get_runner(self, repo_name: str) -> PytestDiffRunner:
         """
-        Initialize or retrieve an existing runner for Repo
+        Initialize or retrieve ean existing runner for Repo
         """
         repo_conf = self.api.get(f"/repo/get/{repo_name}")
-        repo_conf = RepoConfig(**repo_conf)
-        runner = PytestDiffRunner(repo_conf)
+
+        # need to lock access to self.runners since two threads that
+        # instantiate the same runner will not clobber the test repository
+        # when they try to execute tests in the same folder without
+        # LockedRepos in PytestDiffRunner
+        with self.lock:
+            if self.runners.get(repo_name, None):
+                return self.runners[repo_name]
+
+            repo_conf = RepoConfig(**repo_conf)
+            runner = PytestDiffRunner(repo_conf)
+
+            self.runners[repo_name] = runner
 
         return runner
 
@@ -77,10 +93,10 @@ class BGClient:
             try:
                 task_res = self.api.poll()
                 if task_res:
-                    task_log.info(f"Receieved {len(task_res)} tasks from server")
+                    log.info(f"Receieved {len(task_res)} tasks from server")
                     for t in task_res:
                         task_type = t["type"]
-                        task_log.info(f"Received task: {t}")
+                        log.info(f"Received task: {t}")
                         if task_type == TaskType.RUN_TEST:
                             task = Task(**t)
                             task.task_args = RunTestTaskArgs.from_json(**t["task_args"])
@@ -91,19 +107,19 @@ class BGClient:
                             ).start()
 
                         elif task_type == TaskType.SHUTDOWN:
-                            task_log.info(f"Received shutdown signal")
+                            log.info(f"Received shutdown signal")
                             self.complete_task(Task(**t))
                             # sends sigint to main thread
                             _thread.interrupt_main()
 
             except ConnectionError as e:
-                # task_log.error("Error connecting to server ...")
+                # log.error("Error connecting to server ...")
                 pass
 
             # These errors result from how we handle server restarts
             # and our janky non-db auth method so can just ignore
             except Exception as e:
-                task_log.error(
+                log.error(
                     f"Exception from client: {e} : {type(e).__name__}\n{traceback.format_exc()}"
                 )
 
@@ -114,9 +130,11 @@ class BGClient:
         Runs task and updates its result field when finished
         """
         try:
-            task_log.info(f"Starting task: {task.task_id}")
+            log.info(f"Starting task: {task.task_id}")
 
             runner = self.get_runner(task.task_args.repo_name)
+
+            log.info(f"Running testsuite for {task.task_args.repo_name} ...")
             cov_res, *_ = runner.run_testsuite(task.task_args)
             task.result = TaskResult(**cov_res.to_dict())
             self.complete_task(task)
@@ -125,15 +143,10 @@ class BGClient:
             task.result = TaskResult(exception=str(e))
             self.complete_task(task)
 
-            task_log.error(f"Exception from runner: {e}\n{traceback.format_exc()}")
+            log.error(f"Exception from runner: {e}\n{traceback.format_exc()}")
 
     def complete_task(self, task: Task):
         self.api.post(f"/task/complete", json.loads(task.json()))
-        # with self.lock:
-        #     self.curr_t.remove(task.task_id)
-        #     self.completed += 1
-        #     task_log.info(f"Outstanding tasks: {len(self.curr_t)}")
-        #     task_log.info(f"Total completed: {self.completed}")
 
     def heart_beat(self):
         new_file_mode = False
@@ -160,18 +173,18 @@ class BGClient:
 if __name__ == "__main__":
     import sys
     import logging
-    from cowboy.logger import file_formatter
+    from cowboy.logger import formatter
 
     def get_console_handler():
         """
         Returns a console handler for logging.
         """
         console_handler = logging.StreamHandler()
-        console_handler.setFormatter(file_formatter)
+        console_handler.setFormatter(formatter)
         return console_handler
 
     if len(sys.argv) < 3:
-        task_log.info(
+        log.info(
             "Usage: python client.py <heartbeat_file> <heartbeat_interval> <console>"
         )
         sys.exit(1)
@@ -181,7 +194,7 @@ if __name__ == "__main__":
     console = bool(sys.argv[3])
 
     if console:
-        task_log.addHandler(get_console_handler())
+        log.addHandler(get_console_handler())
 
     db = Database()
     api = APIClient(db)
