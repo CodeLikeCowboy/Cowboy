@@ -62,5 +62,10 @@ class Manager:
                 hb_time = f.readlines()[-1].strip()
 
                 return datetime.strptime(hb_time, "%Y-%m-%d %H:%M:%S")
+
+        except ValueError as e:
+            print(
+                f"Possibly corrupted file: {str(self.heart_beat_fp.resolve())}, try deleting "
+            )
         except FileNotFoundError:
             return None

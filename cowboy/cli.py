@@ -253,6 +253,8 @@ def entrypoint():
     """The entry that the CLI is executed from"""
 
     try:
+        import cowboy.logger
+
         # TODO: we should make a note that currently only supporting
         # running a single repo-at-a-time usage, due to hb and error file conflicts
         runner = Manager(config.HB_PATH, config.HB_INTERVAL)

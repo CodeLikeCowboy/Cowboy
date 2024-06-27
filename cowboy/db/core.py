@@ -21,13 +21,14 @@ class Database:
     def __new__(cls, db_path: str = DB_PATH):
         if cls._instance is None:
             cls._instance = super(Database, cls).__new__(cls)
-            cls._instance.db_path = db_path
         return cls._instance
 
     def __init__(self, db_path: str = DB_PATH):
         """
         Initialize empty json at db_path
         """
+        self.db_path = db_path
+
         if not os.path.exists(db_path):
             if os.path.isdir(db_path):
                 os.makedirs(os.path.dirname(db_path), exist_ok=True)
