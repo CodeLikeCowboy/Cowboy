@@ -13,7 +13,7 @@ setup(
     install_requires=[
         "click",
         "pyyaml",
-        "pydantic==1.10.*",
+        "pydantic==2.7.4",
         "gitpython==3.0.6",
         "requests",
         "platformdirs",
