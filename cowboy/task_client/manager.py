@@ -20,10 +20,10 @@ class Manager:
         self.interp = locate_python_interpreter()
 
         if not self.is_alive():
-            print("Client not alive starting client")
+            # print("Client not alive starting client")
             self.start_client()
-        else:
-            print("Client is alive!")
+        # else:
+        # print("Client is alive!")
 
     def start_client(self):
         subprocess.Popen(

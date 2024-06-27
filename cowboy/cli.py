@@ -1,11 +1,18 @@
-import click
-import yaml
-from pathlib import Path
-import json
+from cowboy_lib.repo import GitRepo
 
 from cowboy.repo.models import RepoConfig, RepoConfigRepository, PythonConf
-from cowboy.repo.repo import create_cloned_folders, delete_cloned_folders
-from cowboy.api_cmds import api_baseline, api_augment, api_register, api_get_tms
+from cowboy.repo.repo import (
+    create_cloned_folders,
+    delete_cloned_folders,
+    get_cloned_folders,
+)
+from cowboy.api_cmds import (
+    api_baseline,
+    api_augment,
+    api_register,
+    api_get_tms,
+    api_get_head,
+)
 from cowboy.task_client import Manager
 from cowboy.browser import serve_ui
 from cowboy.exceptions import CowboyClientError
@@ -14,6 +21,11 @@ from cowboy import config
 from cowboy.db.core import Database
 from cowboy.db.public import init_react_env_vars
 from cowboy.http import APIClient, InternalServerError
+
+import click
+import yaml
+from pathlib import Path
+import json
 
 db = Database()
 api = APIClient(db)
@@ -181,6 +193,16 @@ def delete(repo_name):
     click.secho(f"Deleted repo {repo_name}", fg="green")
 
 
+NO_SUPPORT_REPO_UPDATES = """
+A thousand apologies, dear and valued user, our current backend does not track the HEAD of your remote 
+repo; we are currently working on this feature. Will still proceed with the command 
+"""
+
+SIT_TIGHT = """
+Sit tight this might take a while (>5min) 
+"""
+
+
 @cowboy_repo.command("augment")
 @click.argument("repo_name")
 @click.option("--mode", required=False)
@@ -199,6 +221,17 @@ def augment(repo_name, mode, tm):
     elif mode == "auto" and tms:
         raise Exception("Cannot specify file or tms when mode=auto")
 
+    repo_folder = get_cloned_folders(repo_name)[0]
+    remote_head = api_get_head(repo_name)
+    local_head = GitRepo(repo_folder).local_commit
+    if remote_head != local_head:
+        click.secho(
+            f"Local repo HEAD {local_head[:7]} is not up-to-date with remote {remote_head[:7]}\n"
+            + NO_SUPPORT_REPO_UPDATES,
+            fg="yellow",
+        )
+
+    click.secho(SIT_TIGHT, fg="yellow")
     # NOTE: might need to expose baseline command manually to user
     api_baseline(repo_name, mode, tms)
     session_id = api_augment(repo_name, mode, tms)

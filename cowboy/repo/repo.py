@@ -10,6 +10,8 @@ from cowboy.db.core import Database
 from cowboy.utils import gen_random_name
 
 from cowboy.repo.models import RepoConfig
+from cowboy.config import REPO_ROOT
+from cowboy.exceptions import CowboyClientError
 
 ALL_REPO_CONF = "src/config"
 NUM_CLONES = 2
@@ -63,6 +65,17 @@ def create_cloned_folders(
         cloned_folders.append(str(cloned_path))
 
     return cloned_folders
+
+
+def get_cloned_folders(repo_name: str):
+    """
+    Returns the cloned_folders for a repo
+    """
+    repo_folder = Path(REPO_ROOT) / repo_name
+    if not repo_folder.exists():
+        raise CowboyClientError(f"Repo {repo_name} does not exist")
+
+    return [f for f in repo_folder.iterdir() if f.is_dir()]
 
 
 # TODO: here there may be errors

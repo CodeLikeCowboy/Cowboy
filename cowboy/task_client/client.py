@@ -66,6 +66,8 @@ class BGClient:
         """
         Initialize or retrieve ean existing runner for Repo
         """
+        # technically we can store all info locally but dont feel like
+        # managing repo state de-sync
         repo_conf = self.api.get(f"/repo/get/{repo_name}")
 
         # need to lock access to self.runners since two threads that
@@ -78,7 +80,6 @@ class BGClient:
 
             repo_conf = RepoConfig(**repo_conf)
             runner = PytestDiffRunner(repo_conf)
-
             self.runners[repo_name] = runner
 
         return runner
