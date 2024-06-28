@@ -20,12 +20,13 @@ from cowboy import config
 
 from cowboy.db.core import Database
 from cowboy.db.public import init_react_env_vars
-from cowboy.http import APIClient, InternalServerError
+from cowboy.http import APIClient, InternalServerError, check_release
 
 import click
 import yaml
 from pathlib import Path
 import json
+import sys
 
 db = Database()
 api = APIClient(db)
@@ -291,6 +292,12 @@ def entrypoint():
         # TODO: we should make a note that currently only supporting
         # running a single repo-at-a-time usage, due to hb and error file conflicts
         runner = Manager(config.HB_PATH, config.HB_INTERVAL)
+
+        release_notes = check_release(db)
+        if release_notes:
+            click.secho(release_notes, fg="yellow")
+            sys.exit()
+
         cowboy_cli()
     except CowboyClientError as e:
         click.secho(

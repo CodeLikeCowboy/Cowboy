@@ -3,7 +3,7 @@ from platformdirs import user_data_path
 from pathlib import Path
 
 
-CLIENT_MODE = "release"
+CLIENT_MODE = "debug"
 
 if CLIENT_MODE == "debug":
     # assume that we are executing from the root of the cowboy directory in debug mode
@@ -22,7 +22,7 @@ COWBOY_FRONTEND_CONFIG = COWBOY_DIR / "build/config.json"
 REACT_DIST_DIR = (
     Path(str(pkg_resources.files("cowboy"))) / "build"
     if CLIENT_MODE == "release"
-    else "build"
+    else Path("build")
 )
 REACT_DIST_CONFIG = REACT_DIST_DIR / "config.json"
 
