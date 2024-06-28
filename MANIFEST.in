@@ -1,1 +1,2 @@
 exclude static/*
+include cowboy/build/*

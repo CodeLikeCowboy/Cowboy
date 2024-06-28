@@ -11,21 +11,22 @@ build: clean
 	git submodule update --init --recursive
 	
 	cd static && npm run build && cd ..
+	cp -r build cowboy
 
 	$(PYTHON) -m build .
 
-	# switch over to the release version of the config
-	sed "s/^CLIENT_MODE = \".*\"/CLIENT_MODE = \"release\"/" cowboy/config.py
+	# make sure that the config is set to release mode
+	sed -i "s/^CLIENT_MODE = \".*\"/CLIENT_MODE = \"release\"/" cowboy/config.py
 
 install-local: build
-	rm -rf ~/package/cowboy
-	pip install --target ~/package/cowboy dist/*.whl
+	rm -rf cowboy_local
+	pip install --target cowboy_local dist/*.whl
 
-	cp tests/init/user1.yaml ~/package/cowboy/.user
-	cp tests/init/test.yaml ~/package/cowboy/test.yaml
+	cp tests/init/user1.yaml cowboy_local/.user
+	cp tests/init/test.yaml cowboy_local/test.yaml
 	
 upload-test: build
 	$(PYTHON) -m twine upload --repository pypitest dist/*
 
 upload-prod: build
-	$(PYTHON) -m twine upload --repository pypi dist/*
+	$(PYTHON) -m twine upload --repository pypi dist/*.whl

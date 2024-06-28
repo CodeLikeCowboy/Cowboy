@@ -65,3 +65,4 @@ test_init
 dist/*
 logs/*
 db.json
+cowboy_local

@@ -20,7 +20,7 @@ COWBOY_FRONTEND_CONFIG = COWBOY_DIR / "build/config.json"
 
 # Task client vars
 REACT_CONFIG_PATH = (
-    Path(str(pkg_resources.files("cowboy"))) / "build/config.json"
+    Path(str(pkg_resources.files("cowboy-client"))) / "build/config.json"
     if CLIENT_MODE == "release"
     else "build/config.json"
 )
