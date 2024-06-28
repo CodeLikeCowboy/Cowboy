@@ -29,7 +29,7 @@
   },
   "scripts": {
     "start": "dotenv -e .env react-scripts start",
-    "build": "dotenv -e .env react-scripts build && cp -r build/. ../build",
+    "build": "dotenv -e .env react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

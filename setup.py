@@ -3,7 +3,7 @@ from setuptools import Extension, find_packages, setup
 # TODO: figure out how to run npm run build
 setup(
     name="cowboy-client",
-    version="0.7.1",
+    version="0.7.4",
     packages=find_packages(),
     description="Cowboy Client Interface",
     # long_description=long_description,

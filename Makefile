@@ -9,9 +9,9 @@ clean:
 
 build: clean
 	git submodule update --init --recursive
-	
-	cd static && npm run build && cd ..
-	cp -r build cowboy
+
+	# build front-end
+	cd static && npm run build && cd .. && rm -rf cowboy/build && cp -r static/build cowboy/
 
 	$(PYTHON) -m build .
 
@@ -20,7 +20,7 @@ build: clean
 
 install-local: build
 	rm -rf cowboy_local
-	pip install --target cowboy_local dist/*.whl
+	pip install --target --upgrade cowboy_local dist/*.whl
 
 	cp tests/init/user1.yaml cowboy_local/.user
 	cp tests/init/test.yaml cowboy_local/test.yaml

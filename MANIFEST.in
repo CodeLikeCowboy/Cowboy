@@ -1,2 +1,2 @@
 exclude static/*
-include cowboy/build/*
+recursive-include cowboy/build *

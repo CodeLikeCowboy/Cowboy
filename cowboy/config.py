@@ -18,12 +18,15 @@ DB_PATH = COWBOY_DIR / "db.json"
 LOG_DIR = COWBOY_DIR / "logs"
 COWBOY_FRONTEND_CONFIG = COWBOY_DIR / "build/config.json"
 
-# Task client vars
-REACT_CONFIG_PATH = (
-    Path(str(pkg_resources.files("cowboy"))) / "build/config.json"
+# React front-end
+REACT_DIST_DIR = (
+    Path(str(pkg_resources.files("cowboy"))) / "build"
     if CLIENT_MODE == "release"
-    else "build/config.json"
+    else "build"
 )
+REACT_DIST_CONFIG = REACT_DIST_DIR / "config.json"
+
+# Client variables
 HB_PATH = COWBOY_DIR / ".heartbeat"
 HB_INTERVAL = 2
 NUM_CLONES = 3

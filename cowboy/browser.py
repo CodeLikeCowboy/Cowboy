@@ -1,4 +1,5 @@
 from cowboy.utils import start_daemon, is_port_available
+from cowboy.config import REACT_DIST_DIR
 
 from http.server import SimpleHTTPRequestHandler
 from webbrowser import open
@@ -6,7 +7,6 @@ import socketserver
 import os
 import sys
 
-DIRECTORY = "build"
 HOST = "localhost"
 PORT = 8085
 MAX_RETRIES = 10
@@ -14,7 +14,7 @@ MAX_RETRIES = 10
 
 class CustomHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=DIRECTORY, **kwargs)
+        super().__init__(*args, directory=REACT_DIST_DIR, **kwargs)
 
     # need this to route all requests to index.html or else the web server
     # will default try look for files in the served directory

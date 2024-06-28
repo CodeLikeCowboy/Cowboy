@@ -1,4 +1,4 @@
-from cowboy.config import REACT_CONFIG_PATH
+from cowboy.config import REACT_DIST_CONFIG
 from pathlib import Path
 import json
 
@@ -12,5 +12,5 @@ def init_react_env_vars(token, api_endpoint):
         "api_endpoint": api_endpoint,
     }
 
-    with open(REACT_CONFIG_PATH, "w+") as f:
+    with open(REACT_DIST_CONFIG, "w+") as f:
         f.write(json.dumps(env_vars))
