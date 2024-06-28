@@ -1,6 +1,5 @@
-Cowboy is a unit test generator that is meant to augment your existing test suite with more high-quality tests that raise coverage. With a simple to use commandline API, get started right now with our in-house, AI based test-generation flow.
-
-***Note: Currently we only support Python, but other JS/TS and Golang are on the near-term roadmap***
+Cowboy is a unit test generator that is meant to augment your existing test suite with more high-quality tests that raise coverage. With a simple to use commandline API, get started right now with our in-house, AI based test-generation flow. 
+***Note: Currently we only support Python and public repos, but other other langs are on the near-term roadmap. Comment in issues to which ones you would like to see first!***
 ```
 pip install cowboy
 ```
@@ -42,10 +41,11 @@ Augment all test suites by passing the ```mode=all``` option
 cowboy repo augment --mode=all test_repo
 ```
 
-For more fine-grained control, you can augment a specific TestModule, Cowboy's logical grouping of unit tests (maps to either a class or test_file)
+For more fine-grained control, you can augment a specific TestModule, Cowboy's logical grouping of unit tests (maps to either a class or test_file). 
 ```
-cowboy repo augment --tm TestWoodpecker test_repo
-cowboy repo augment --tm TestWoodpecker --tm TestBitrise test_repo
+cowboy repo augment --tm TestWoodpecker test_repo # TestWoodpecker is the TestModule
+cowboy repo augment --tm test_file.py test_repo # test_file.py is the TestModule
+cowboy repo augment --tm TestWoodpecker --tm TestBitrise test_repo 
 ```
 
 See the list of TestModules discovered for your repo
