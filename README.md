@@ -1,7 +1,7 @@
 Cowboy is a unit test generator that is meant to augment your existing test suite with more high-quality tests that raise coverage. With a simple to use commandline API, get started right now with our in-house, AI based test-generation flow. 
 ***Note: Currently we only support Python and public repos, but other other langs are on the near-term roadmap. Comment in issues to which ones you would like to see first!***
 ```
-pip install cowboy
+pip install cowboy-client
 ```
 
 Create a ```.user``` file in the root directory to represent a new user. It should contain your email and OpenAI API key
