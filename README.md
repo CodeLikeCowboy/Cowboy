@@ -1,4 +1,7 @@
-Cowboy is a unit test generator that is meant to augment your existing test suite with more high-quality tests that raise coverage. With a simple to use commandline API, get started right now with our in-house, AI based test-generation flow. 
+![2024-07-02 10_14_29-Window](https://github.com/CodeLikeCowboy/Cowboy/assets/174470010/80b873fb-f47f-4df5-bae1-b004ce4a565b)
+<br>
+<br>
+Cowboy is a unit test generator that is meant to augment your existing test suite with more high-quality tests that raise coverage. With a simple to use commandline API, get started right now with our in-house, AI based test-generation flow.<br> 
 ***Note: Currently we only support Python and public repos, but other other langs are on the near-term roadmap. Comment in issues to which ones you would like to see first!***
 ```
 pip install cowboy-client
@@ -52,3 +55,5 @@ See the list of TestModules discovered for your repo
 ```
 cowboy repo get_tms test_repo
 ```
+
+[Join our Discord](https://discord.com/channels/1257700742312099890/1257700742865621136)
